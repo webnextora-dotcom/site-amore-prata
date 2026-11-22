@@ -1,14 +1,61 @@
-import {api,byId} from './shared.js';
+import {api,byId,element,money} from './shared.js';
+
 const status = byId('confirmation');
+const details = byId('orderDetails');
+const pay = byId('payOrder');
 const query = new URLSearchParams(location.search);
-const body = {order_nsu:query.get('order_nsu'),transaction_nsu:query.get('transaction_nsu'),slug:query.get('slug') || query.get('invoice_slug')};
-if (!body.order_nsu || !body.transaction_nsu || !body.slug) status.textContent = 'Acesse esta página pelo retorno da InfinitePay para consultar seu pagamento.';
-else {
-  try {
-    const result = await api('confirm',body);
-    status.textContent = result.paid ? 'Pagamento confirmado. Seu pedido será preparado para envio.' : 'Pagamento aguardando confirmação. Você pode atualizar esta página para consultar novamente.';
-    if (result.paid) {
-      try { localStorage.removeItem('amore_cart'); } catch {}
-    }
-  } catch {status.textContent = 'Não foi possível consultar o pagamento agora. Atualize a página em instantes.';}
+const payment = {order_nsu:query.get('order_nsu'),transaction_nsu:query.get('transaction_nsu'),slug:query.get('slug') || query.get('invoice_slug')};
+let id = query.get('id') || payment.order_nsu;
+if (!id) {
+  try { id = localStorage.getItem('amore_last_order'); } catch {}
+  if (id) history.replaceState(null,'','/pedido?id='+encodeURIComponent(id));
 }
+
+pay.addEventListener('click',async () => {
+  pay.disabled = true;
+  try {
+    const result = await api('order-payment',{id});
+    location.assign(result.url);
+  } catch(error) {
+    status.textContent = error.message;
+    pay.disabled = false;
+  }
+});
+
+async function loadOrder() {
+  if (!id) {
+    status.textContent = 'Abra o link do seu pedido para acompanhar o frete e o pagamento.';
+    return;
+  }
+  if (payment.order_nsu && payment.transaction_nsu && payment.slug) {
+    try { await api('confirm',payment); } catch {}
+  }
+  const order = await api('order-status',{id});
+  if (order.paid) {
+    if (order.fulfillment === 'delivered') status.textContent = 'Pedido entregue.';
+    else if (order.fulfillment === 'shipped') status.textContent = 'Pedido enviado.';
+    else status.textContent = 'Pagamento confirmado. Pedido em preparação.';
+    try {
+      if (localStorage.getItem('amore_last_order') === id || !localStorage.getItem('amore_last_order')) {
+        localStorage.removeItem('amore_cart');
+      }
+    } catch {}
+  } else if (order.waiting) {
+    status.textContent = 'Cotação solicitada. Guarde este link e volte para consultar o valor do frete.';
+  } else {
+    status.textContent = order.canPay ? 'Frete cotado. Confira o total e pague para confirmar seu pedido.' : 'Pagamento aguardando confirmação.';
+  }
+  if (order.method) {
+    details.append(element('p','Correios '+order.method+' · '+money(order.shipping)+' · '+order.days+' dia(s) úteis após a postagem'));
+  }
+  if (!order.waiting) details.append(element('p','Total '+money(order.total)));
+  if (order.tracking) {
+    const tracking = element('a','Rastrear nos Correios');
+    tracking.href = 'https://rastreamento.correios.com.br/app/index.php';
+    tracking.target = '_blank';
+    tracking.rel = 'noopener noreferrer';
+    details.append(element('p','Código de rastreamento: '+order.tracking),tracking);
+  }
+  pay.hidden = !order.canPay;
+}
+loadOrder().catch(error => {status.textContent = error.message || 'Não foi possível consultar o pedido agora.';});

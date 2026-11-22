@@ -36,6 +36,58 @@ function showSession(signedIn) {
   }
 }
 
+function orderForm(order,action,fields,label,success) {
+  const form = element('form',undefined,'fields');
+  for (const [caption,input] of fields) {
+    const wrapper = element('label',caption);
+    wrapper.append(input);
+    form.append(wrapper);
+  }
+  const submit = element('button',label,'outline');
+  form.append(submit);
+  form.addEventListener('submit',async event => {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(form));
+    if (action === 'shipping-quote') {
+      data.shipping = Math.round(Number(data.shipping)*100);
+      data.days = Number(data.days);
+    }
+    submit.disabled = true;
+    status.textContent = '';
+    try {
+      await api(action,{id:order.id,...data});
+      await load();
+      status.textContent = success;
+    } catch(error) {
+      status.textContent = error.message;
+    } finally {
+      submit.disabled = false;
+    }
+  });
+  return form;
+}
+
+function shippingQuoteForm(order) {
+  const method = Object.assign(element('select'),{name:'method',required:true});
+  method.append(new Option('Selecione',''),new Option('PAC','PAC'),new Option('SEDEX','SEDEX'));
+  const shipping = Object.assign(element('input'),{name:'shipping',type:'number',min:0,max:1000,step:'0.01',required:true});
+  const days = Object.assign(element('input'),{name:'days',type:'number',min:1,max:90,required:true});
+  const section = element('section');
+  section.append(element('h3','Cotação dos Correios'));
+  section.append(element('p','Origem: 64046-010 · Av. Raul Lopes, 1000, loja 443, segundo andar, Teresina–PI. Destino: '+order.customer.cep+'. Inclua o Valor Declarado no preço.'));
+  section.append(orderForm(order,'shipping-quote',[
+    ['Serviço',method],['Frete (R$)',shipping],['Prazo (dias úteis)',days]
+  ],'Salvar cotação','Cotação salva. Compartilhe o link do pedido com o cliente.'));
+  return section;
+}
+
+function trackingForm(order) {
+  const input = Object.assign(element('input'),{
+    name:'tracking',required:true,maxLength:13,pattern:'[A-Za-z]{2}[0-9]{9}[A-Za-z]{2}',value:order.tracking_code || ''
+  });
+  return orderForm(order,'order-tracking',[['Código de rastreamento',input]],'Salvar rastreio','Código de rastreamento salvo.');
+}
+
 function renderOrders(orders,more) {
   const view = byId('orders');
   view.replaceChildren();
@@ -47,14 +99,17 @@ function renderOrders(orders,more) {
     const meta = element('div',undefined,'order-meta');
     const paid = order.payment_status === 'paid';
     const date = new Date(order.created_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
-    meta.append(element('span',date),element('span',paid?'Pagamento confirmado':'Aguardando pagamento'),element('span',fulfillment[order.fulfillment]));
+    const waitingQuote = order.shipping_requested && !order.shipping_method;
+    meta.append(element('span',date),element('span',paid?'Pagamento confirmado':waitingQuote?'Aguardando cotação':'Aguardando pagamento'),element('span',fulfillment[order.fulfillment]));
     const details = element('details');
     details.append(element('summary','Itens e endereço'),element('p','Pedido '+order.id));
     const list = element('ul');
     for (const item of order.items) list.append(element('li',item.quantity+' × '+item.description+' · '+money(item.quantity*item.price)));
     const customer = order.customer;
-    details.append(list,element('p','Frete '+money(order.shipping)),element('p',customer.email+' · '+customer.phone),element('p',[customer.address,customer.number,customer.complement,customer.district,customer.city+' – '+customer.state,customer.cep].filter(Boolean).join(', ')));
+    details.append(list,element('p',waitingQuote?'Frete sob consulta':order.shipping_method?'Correios '+order.shipping_method+' · '+money(order.shipping)+' · '+order.shipping_days+' dia(s) úteis':'Frete '+money(order.shipping)),element('p',customer.email+' · '+customer.phone),element('p',[customer.address,customer.number,customer.complement,customer.district,customer.city+' – '+customer.state,customer.cep].filter(Boolean).join(', ')));
     card.append(heading,meta,details);
+    if (waitingQuote) card.append(shippingQuoteForm(order));
+    if (paid) card.append(trackingForm(order));
     const actions = element('div',undefined,'admin-tabs');
     if (paid && order.fulfillment !== 'delivered') {
       const shipment = order.fulfillment === 'pending';
@@ -89,6 +144,22 @@ function renderOrders(orders,more) {
         status.textContent = 'Pedido excluído. Atualize a página para recarregar a lista.';
       }
     });
+    if (order.shipping_requested) {
+      const url = new URL('/pedido?id='+encodeURIComponent(order.id),location.origin);
+      actions.append(button('Copiar link do pedido',async () => {
+        try {
+          await navigator.clipboard.writeText(url.href);
+          status.textContent = 'Link copiado. Envie ao cliente pelo canal de atendimento.';
+        } catch {
+          status.textContent = 'Não foi possível copiar. Abra o link do pedido e copie o endereço.';
+        }
+      }));
+      const link = element('a','Abrir pedido','outline');
+      link.href = url.href;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      actions.append(link);
+    }
     actions.append(remove);
     card.append(actions);
     view.append(card);

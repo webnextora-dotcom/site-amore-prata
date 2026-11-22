@@ -2,6 +2,10 @@
   "buildCommand": "node build.mjs",
   "outputDirectory": "public",
   "rewrites": [
+    {"source": "/api/order-status", "destination": "/api/store?route=order-status"},
+    {"source": "/api/order-payment", "destination": "/api/store?route=order-payment"},
+    {"source": "/api/shipping-quote", "destination": "/api/store?route=shipping-quote"},
+    {"source": "/api/order-tracking", "destination": "/api/store?route=order-tracking"},
     {"source": "/api/delete-order", "destination": "/api/store?route=delete-order"},
     {"source": "/api/admin-password", "destination": "/api/store?route=admin-password"},
     {

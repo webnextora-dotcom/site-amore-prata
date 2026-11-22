@@ -2,7 +2,6 @@ import {api,button,byId,categories,element,money} from './shared.js';
 
 let catalog = [];
 let available = false;
-let shipping = 0;
 let filter = 'Todos';
 let quantities = {};
 try { quantities = JSON.parse(localStorage.getItem('amore_cart')) || {}; } catch {}
@@ -38,7 +37,7 @@ function renderCart() {
     lines.append(row);
   }
   const subtotal = items.reduce((sum,item) => sum+item.price*quantities[item.id],0);
-  byId('totals').textContent = !items.length ? 'Sua sacola está vazia.' : available ? 'Produtos '+money(subtotal)+' · Frete '+money(shipping)+' · Total '+money(subtotal+shipping) : 'Subtotal '+money(subtotal);
+  byId('totals').textContent = !items.length ? 'Sua sacola está vazia.' : 'Subtotal '+money(subtotal)+(available ? ' · Frete sob consulta' : '');
   checkout.hidden = !items.length || !available;
   byId('cartStatus').textContent = items.length && !available ? 'As compras online ainda não estão disponíveis.' : '';
 }
@@ -86,10 +85,11 @@ checkout.addEventListener('submit',async event => {
   event.preventDefault();
   const submit = checkout.querySelector('button');
   submit.disabled = true;
-  byId('cartStatus').textContent = 'Abrindo o checkout…';
+  byId('cartStatus').textContent = 'Enviando sua solicitação…';
   try {
     const result = await api('checkout',{customer:Object.fromEntries(new FormData(checkout)),items:selected().map(item => ({id:item.id,quantity:quantities[item.id]}))});
-    location.assign(result.url);
+    try { localStorage.setItem('amore_last_order',result.id); } catch {}
+    location.assign('/pedido?id='+encodeURIComponent(result.id));
   } catch(error) {
     byId('cartStatus').textContent = error.message;
     submit.disabled = false;
@@ -99,7 +99,6 @@ try {
   const result = await api('catalog');
   catalog = result.products;
   available = result.checkout;
-  shipping = result.shipping;
   if (result.demo) byId('catalogStatus').textContent = 'Prévia da coleção com preços ilustrativos.';
   renderProducts();
   renderCart();
