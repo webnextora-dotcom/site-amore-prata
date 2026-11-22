@@ -1,0 +1,14 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Painel | Amore Prata</title><link rel="stylesheet" href="/loja/style.css"><script type="module" src="/loja/admin.js"></script></head>
+<body><header class="top"><a class="brand" href="/loja/">Amore <i>Prata</i></a><a href="/loja/">Ver loja</a><button class="outline" id="logout" hidden>Sair</button></header><main class="workspace">
+<h1>Painel da loja</h1><p role="status" id="status"></p>
+<form class="panel login" id="login" hidden><h2>Entrar</h2><label>E-mail<input type="email" name="email" autocomplete="username" required></label><label>Senha<input type="password" name="password" autocomplete="current-password" required></label><button class="button">Entrar</button></form>
+<section id="dashboard" hidden><nav class="admin-tabs" aria-label="Seções do painel"><button class="outline" id="ordersTab" aria-pressed="true">Pedidos</button><button class="outline" id="productsTab" aria-pressed="false">Produtos</button></nav>
+<section id="ordersPanel"><h2>Pedidos</h2><div id="orders"></div><div class="admin-tabs"><button class="outline" id="prev" hidden>Anterior</button><button class="outline" id="next" hidden>Próxima</button></div></section>
+<section id="productsPanel" hidden><div class="toolbar"><h2>Produtos</h2><button class="button" id="addProduct">Novo produto</button></div><div id="productList"></div></section></section>
+</main><dialog id="editor"><div class="dialog-heading"><h2 id="editorTitle">Produto</h2><form method="dialog"><button class="outline">Fechar</button></form></div><form id="productForm"><div class="fields">
+<input type="hidden" name="id"><label class="wide">Nome<input name="name" maxlength="120" required></label>
+<label>Categoria<select name="category" required></select></label><label>Preço (R$)<input type="number" name="price" min=".01" max="999999.99" step=".01" required></label>
+<label class="wide">Descrição<textarea name="description" maxlength="2000"></textarea></label>
+<label class="wide">Foto (JPG, PNG ou WebP, até 3 MB)<input type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
+<label class="wide"><span><input type="checkbox" name="active" style="width:auto"> Exibir na loja</span></label>
+</div><button class="button">Salvar produto</button><p id="editorStatus" role="status"></p></form></dialog></body></html>

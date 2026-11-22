@@ -1,0 +1,16 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Explore a coleção de joias da Amore Prata."><title>Amore Prata | Joias</title><link rel="stylesheet" href="/loja/style.css"><script type="module" src="/loja/shop.js"></script></head>
+<body><header class="top"><a class="brand" href="/loja/">Amore <i>Prata</i></a><a class="collection-link" href="#colecao">Coleção</a><button id="bag" class="outline">Sacola <span id="count">0</span></button></header>
+<main><section class="hero"><div class="hero-copy"><p class="eyebrow">AMORE PRATA</p><h1>Seu brilho,<br><i>do seu jeito.</i></h1><p>Anéis, brincos, colares e pulseiras para combinar à sua maneira.</p><a class="button" href="#colecao">Explorar coleção</a></div><img src="/loja/fotos/capa.jpg" fetchpriority="high" alt="Detalhe de colar da Amore Prata"></section>
+<section class="collection" id="colecao"><div class="collection-top"><h2>Escolha sua joia</h2><nav id="filters" aria-label="Categorias"></nav></div><p id="catalogStatus" role="status"></p><div id="products" class="products"></div></section></main>
+<footer><a class="brand" href="/loja/">Amore <i>Prata</i></a><a href="/admin">Área administrativa</a></footer>
+<dialog id="cart"><div class="dialog-heading"><h2>Sua sacola</h2><form method="dialog"><button class="outline" aria-label="Fechar sacola">Fechar</button></form></div><div id="lines"></div><p id="totals"></p><form id="checkout" hidden><h3>Dados para entrega</h3><div class="fields">
+<label class="wide">Nome completo<input name="name" autocomplete="name" maxlength="120" required></label>
+<label>E-mail<input name="email" type="email" autocomplete="email" maxlength="150" required></label>
+<label>Telefone<input name="phone" type="tel" autocomplete="tel" maxlength="24" required></label>
+<label>CEP<input name="cep" autocomplete="postal-code" inputmode="numeric" maxlength="9" required></label>
+<label>UF<select name="state" autocomplete="address-level1" required><option value="">Selecione</option></select></label>
+<label class="wide">Rua ou avenida<input name="address" autocomplete="address-line1" maxlength="180" required></label>
+<label>Número<input name="number" maxlength="20" required></label>
+<label>Complemento<input name="complement" autocomplete="address-line2" maxlength="100"></label>
+<label>Bairro<input name="district" maxlength="100" required></label>
+<label>Cidade<input name="city" autocomplete="address-level2" maxlength="100" required></label></div><button class="button" type="submit">Pagar com InfinitePay</button></form><p id="cartStatus" role="status"></p></dialog></body></html>

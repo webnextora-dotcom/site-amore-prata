@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+.vercel/
+node_modules/
+/public/index.html
+/public/styles.css
+/public/script.js
+/public/logo.png
+/public/fachada-hero.jpg
+/public/produtos/

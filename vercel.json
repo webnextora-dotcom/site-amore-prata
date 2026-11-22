@@ -1,0 +1,69 @@
+{
+  "buildCommand": "node build.mjs",
+  "outputDirectory": "public",
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": "/loja/admin.html"
+    },
+    {
+      "source": "/pedido",
+      "destination": "/loja/pedido.html"
+    },
+    {
+      "destination": "/api/store?route=catalog",
+      "source": "/api/catalog"
+    },
+    {
+      "destination": "/api/store?route=checkout",
+      "source": "/api/checkout"
+    },
+    {
+      "destination": "/api/store?route=webhook",
+      "source": "/api/webhook"
+    },
+    {
+      "destination": "/api/store?route=confirm",
+      "source": "/api/confirm"
+    },
+    {
+      "destination": "/api/store?route=login",
+      "source": "/api/login"
+    },
+    {
+      "destination": "/api/store?route=logout",
+      "source": "/api/logout"
+    },
+    {
+      "destination": "/api/store?route=dashboard",
+      "source": "/api/dashboard"
+    },
+    {
+      "destination": "/api/store?route=product",
+      "source": "/api/product"
+    },
+    {
+      "destination": "/api/store?route=fulfillment",
+      "source": "/api/fulfillment"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
+      ]
+    }
+  ]
+}
