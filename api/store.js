@@ -163,7 +163,7 @@ async function route(req,res,action,body) {
     res.setHeader('Set-Cookie','amore_session='+session.access_token+'; HttpOnly; Path=/api; SameSite=Strict; Secure; Max-Age='+session.expires_in);
     return {};
   }
-  if (!['dashboard','product','fulfillment'].includes(action)) fail(404,'Página não encontrada.');
+  if (!['dashboard','product','fulfillment','delete-order'].includes(action)) fail(404,'Página não encontrada.');
   await admin(req);
   if (action === 'dashboard' && req.method === 'GET') {
     const offset = Number(req.query.offset ?? 0);
@@ -181,13 +181,20 @@ async function route(req,res,action,body) {
     }
     const [products,orders] = await Promise.all([
       db('/rest/v1/products?order=created_at.desc'),
-      db('/rest/v1/orders?select=id,customer,items,total,shipping,payment_status,fulfillment,created_at&order=created_at.desc,id.desc&limit=26&offset='+offset+'&'+filters)
+      db('/rest/v1/orders?select=id,customer,items,total,shipping,payment_status,fulfillment,created_at&order=created_at.desc,id.desc&deleted_at=is.null&limit=26&offset='+offset+'&'+filters)
     ]);
     return {products, orders:orders.slice(0,25), more:orders.length > 25};
   }
+  if (action === 'delete-order' && req.method === 'POST') {
+    if (typeof body.id !== 'string' || !uuid.test(body.id)) fail(400,'Pedido inválido.');
+    await db('/rest/v1/orders?id=eq.'+body.id+'&deleted_at=is.null',{
+      method:'PATCH',data:{deleted_at:new Date().toISOString()}
+    });
+    return {};
+  }
   if (action === 'fulfillment' && req.method === 'POST') {
     if (!uuid.test(body.id) || !['pending','shipped','delivered'].includes(body.fulfillment)) fail(400,'Status inválido.');
-    const updated = await db('/rest/v1/orders?id=eq.'+body.id+'&payment_status=eq.paid',{method:'PATCH',data:{fulfillment:body.fulfillment}});
+    const updated = await db('/rest/v1/orders?id=eq.'+body.id+'&payment_status=eq.paid&deleted_at=is.null',{method:'PATCH',data:{fulfillment:body.fulfillment}});
     if (!updated.length) fail(409,'Só é possível atualizar o envio de pedidos pagos.');
     return {};
   }

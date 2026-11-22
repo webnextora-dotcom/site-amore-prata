@@ -55,6 +55,7 @@ function renderOrders(orders,more) {
     const customer = order.customer;
     details.append(list,element('p','Frete '+money(order.shipping)),element('p',customer.email+' · '+customer.phone),element('p',[customer.address,customer.number,customer.complement,customer.district,customer.city+' – '+customer.state,customer.cep].filter(Boolean).join(', ')));
     card.append(heading,meta,details);
+    const actions = element('div',undefined,'admin-tabs');
     if (paid && order.fulfillment !== 'delivered') {
       const shipment = order.fulfillment === 'pending';
       const update = button(shipment?'Marcar como enviado':'Marcar como entregue',async () => {
@@ -65,8 +66,31 @@ function renderOrders(orders,more) {
           status.textContent = 'Pedido atualizado.';
         } catch(error) { update.disabled = false; status.textContent = error.message; }
       });
-      card.append(update);
+      actions.append(update);
     }
+    const remove = button('Excluir pedido',async () => {
+      const paymentNotice = 'A exclusão do painel não cancela nem estorna pagamentos.';
+      if (!window.confirm('Excluir o pedido de '+customer.name+' do painel? '+paymentNotice)) return;
+      for (const action of actions.querySelectorAll('button')) action.disabled = true;
+      status.textContent = '';
+      try {
+        await api('delete-order',{id:order.id});
+      } catch(error) {
+        for (const action of actions.querySelectorAll('button')) action.disabled = false;
+        status.textContent = error.message;
+        return;
+      }
+      card.remove();
+      offset = 0;
+      try {
+        await load();
+        status.textContent = 'Pedido excluído.';
+      } catch(error) {
+        status.textContent = 'Pedido excluído. Atualize a página para recarregar a lista.';
+      }
+    });
+    actions.append(remove);
+    card.append(actions);
     view.append(card);
   }
   byId('prev').hidden = offset === 0;
