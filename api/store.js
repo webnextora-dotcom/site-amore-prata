@@ -142,9 +142,20 @@ async function route(req,res,action,body) {
   if (action === 'dashboard' && req.method === 'GET') {
     const offset = Number(req.query.offset ?? 0);
     if (!Number.isSafeInteger(offset) || offset < 0) fail(400,'Página inválida.');
+    const filters = new URLSearchParams();
+    for (const [param,column,allowed] of [
+      ['payment','payment_status',['pending','paid']],
+      ['delivery','fulfillment',['pending','shipped','delivered']]
+    ]) {
+      if (req.query[param] === undefined) continue;
+      if (typeof req.query[param] !== 'string') fail(400,'Filtro inválido.');
+      const values = req.query[param].split(',');
+      if (values.length > allowed.length || values.some(value => !allowed.includes(value))) fail(400,'Filtro inválido.');
+      filters.set(column,'in.('+values.join(',')+')');
+    }
     const [products,orders] = await Promise.all([
       db('/rest/v1/products?order=created_at.desc'),
-      db('/rest/v1/orders?select=id,customer,items,total,shipping,payment_status,fulfillment,created_at&order=created_at.desc,id.desc&limit=26&offset='+offset)
+      db('/rest/v1/orders?select=id,customer,items,total,shipping,payment_status,fulfillment,created_at&order=created_at.desc,id.desc&limit=26&offset='+offset+'&'+filters)
     ]);
     return {products, orders:orders.slice(0,25), more:orders.length > 25};
   }

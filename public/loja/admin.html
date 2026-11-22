@@ -2,9 +2,29 @@
 <body><header class="top"><a class="brand" href="/">Amore <i>Prata</i></a><a href="/">Ver loja</a><button class="outline" id="logout" hidden>Sair</button></header><main class="workspace">
 <h1>Painel da loja</h1><p role="status" id="status"></p>
 <form class="panel login" id="login" hidden><h2>Entrar</h2><label>E-mail<input type="email" name="email" autocomplete="username" required></label><label>Senha<input type="password" name="password" autocomplete="current-password" required></label><button class="button">Entrar</button></form>
-<section id="dashboard" hidden><nav class="admin-tabs" aria-label="Seções do painel"><button class="outline" id="ordersTab" aria-pressed="true">Pedidos</button><button class="outline" id="productsTab" aria-pressed="false">Produtos</button></nav>
-<section id="ordersPanel"><h2>Pedidos</h2><div id="orders"></div><div class="admin-tabs"><button class="outline" id="prev" hidden>Anterior</button><button class="outline" id="next" hidden>Próxima</button></div></section>
-<section id="productsPanel" hidden><div class="toolbar"><h2>Produtos</h2><button class="button" id="addProduct">Novo produto</button></div><div id="productList"></div></section></section>
+<section id="dashboard" hidden><nav class="admin-sections" aria-label="Seções do painel"><button class="outline" id="ordersTab" aria-pressed="true" aria-controls="ordersPanel"><strong>Pedidos</strong><span>Pagamentos e entregas</span></button><button class="outline" id="productsTab" aria-pressed="false" aria-controls="productsPanel"><strong>Produtos</strong><span>Catálogo da loja</span></button></nav>
+<section id="ordersPanel"><h2>Pedidos</h2>
+<form id="orderFilters" class="filters" aria-label="Filtros de pedidos">
+<fieldset><legend>Pagamento</legend>
+<label><input type="checkbox" name="payment" value="pending"> Aguardando pagamento</label>
+<label><input type="checkbox" name="payment" value="paid"> Pagamento confirmado</label>
+</fieldset>
+<fieldset><legend>Entrega</legend>
+<label><input type="checkbox" name="delivery" value="pending"> Aguardando envio</label>
+<label><input type="checkbox" name="delivery" value="shipped"> Enviado</label>
+<label><input type="checkbox" name="delivery" value="delivered"> Entregue</label>
+</fieldset>
+<button type="reset" class="outline">Limpar filtros</button>
+</form><div id="orders" aria-live="polite"></div><div class="admin-tabs"><button class="outline" id="prev" hidden>Anterior</button><button class="outline" id="next" hidden>Próxima</button></div></section>
+<section id="productsPanel" hidden><div class="toolbar"><h2>Produtos</h2><button class="button" id="addProduct">Novo produto</button></div>
+<form id="productFilters" class="filters" aria-label="Filtros de produtos">
+<fieldset id="productCategories"><legend>Categoria</legend></fieldset>
+<fieldset><legend>Visibilidade</legend>
+<label><input type="checkbox" name="visibility" value="published"> Publicados</label>
+<label><input type="checkbox" name="visibility" value="hidden"> Ocultos</label>
+</fieldset>
+<button type="reset" class="outline">Limpar filtros</button>
+</form><div id="productList" aria-live="polite"></div></section></section>
 </main><dialog id="editor"><div class="dialog-heading"><h2 id="editorTitle">Produto</h2><form method="dialog"><button class="outline">Fechar</button></form></div><form id="productForm"><div class="fields">
 <input type="hidden" name="id"><label class="wide">Nome<input name="name" maxlength="120" required></label>
 <label>Categoria<select name="category" required></select></label><label>Preço (R$)<input type="number" name="price" min=".01" max="999999.99" step=".01" required></label>

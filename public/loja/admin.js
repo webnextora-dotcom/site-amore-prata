@@ -4,7 +4,20 @@ const login = byId('login');
 const editor = byId('editor');
 const productForm = byId('productForm');
 const status = byId('status');
+const orderFilters = byId('orderFilters');
+const productFilters = byId('productFilters');
 let offset = 0;
+let products = [];
+let latestLoad = 0;
+for (const category of categories) {
+  const label = element('label');
+  const checkbox = element('input');
+  checkbox.type = 'checkbox';
+  checkbox.name = 'category';
+  checkbox.value = category;
+  label.append(checkbox, ' ' + category);
+  byId('productCategories').append(label);
+}
 const fulfillment = {pending:'Aguardando envio',shipped:'Enviado',delivered:'Entregue'};
 for (const category of categories) productForm.elements.category.append(new Option(category,category));
 
@@ -26,7 +39,7 @@ function showSession(signedIn) {
 function renderOrders(orders,more) {
   const view = byId('orders');
   view.replaceChildren();
-  if (!orders.length) view.append(element('p','Nenhum pedido nesta página.'));
+  if (!orders.length) view.append(element('p',new FormData(orderFilters).keys().next().done ? 'Nenhum pedido nesta página.' : 'Nenhum pedido corresponde aos filtros.'));
   for (const order of orders) {
     const card = element('article',undefined,'panel');
     const heading = element('div',undefined,'toolbar');
@@ -73,27 +86,62 @@ function edit(product) {
   editor.showModal();
 }
 
+function renderProducts() {
+  const filters = new FormData(productFilters);
+  const categories = filters.getAll('category');
+  const visibility = filters.getAll('visibility');
+  const shown = products.filter(product =>
+    (!categories.length || categories.includes(product.category)) &&
+    (!visibility.length || visibility.includes(product.active ? 'published' : 'hidden'))
+  );
+  const view = byId('productList');
+  view.replaceChildren();
+  if (!shown.length) {
+    view.append(element('p',products.length ? 'Nenhum produto corresponde aos filtros.' : 'Cadastre o primeiro produto para montar o catálogo.'));
+  }
+  for (const product of shown) {
+    const row = element('article',undefined,'panel toolbar');
+    const info = element('div');
+    info.append(element('strong',product.name),element('div',product.category+' · '+money(product.price)+' · '+(product.active?'Publicado':'Oculto')));
+    row.append(info,button('Editar',() => edit(product)));
+    view.append(row);
+  }
+}
+
 async function load() {
+  const request = ++latestLoad;
+  const query = new URLSearchParams({offset:String(offset)});
+  const filters = new FormData(orderFilters);
+  for (const name of ['payment','delivery']) {
+    const values = filters.getAll(name);
+    if (values.length) query.set(name,values.join(','));
+  }
+  byId('orders').setAttribute('aria-busy','true');
   try {
-    const result = await api('dashboard?offset='+offset);
+    const result = await api('dashboard?'+query);
+    if (request !== latestLoad) return;
     showSession(true);
     renderOrders(result.orders,result.more);
-    const view = byId('productList');
-    view.replaceChildren();
-    if (!result.products.length) view.append(element('p','Cadastre o primeiro produto para montar o catálogo.'));
-    for (const product of result.products) {
-      const row = element('article',undefined,'panel toolbar');
-      const info = element('div');
-      info.append(element('strong',product.name),element('div',product.category+' · '+money(product.price)+' · '+(product.active?'Publicado':'Oculto')));
-      row.append(info,button('Editar',() => edit(product)));
-      view.append(row);
-    }
+    products = result.products;
+    renderProducts();
   } catch(error) {
+    if (request !== latestLoad) return;
     showSession(false);
     if (error.status !== 401) status.textContent = error.message;
     throw error;
+  } finally {
+    if (request === latestLoad) byId('orders').removeAttribute('aria-busy');
   }
 }
+
+function reloadOrders() {
+  offset = 0;
+  load().catch(() => {});
+}
+orderFilters.addEventListener('change',reloadOrders);
+orderFilters.addEventListener('reset',() => setTimeout(reloadOrders,0));
+productFilters.addEventListener('change',renderProducts);
+productFilters.addEventListener('reset',() => setTimeout(renderProducts,0));
 
 login.addEventListener('submit',async event => {
   event.preventDefault();
@@ -107,7 +155,7 @@ login.addEventListener('submit',async event => {
   finally {formBusy(login,false);}
 });
 byId('logout').addEventListener('click',async () => {
-  try {await api('logout',{});showSession(false);status.textContent = '';offset = 0;}
+  try {await api('logout',{});latestLoad++;showSession(false);status.textContent = '';offset = 0; products = [];}
   catch(error) {status.textContent = error.message;}
 });
 for (const name of ['orders','products']) {
