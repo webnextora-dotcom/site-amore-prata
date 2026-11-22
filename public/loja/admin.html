@@ -1,6 +1,12 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Painel | Amore Prata</title><link rel="stylesheet" href="/loja/style.css"><script type="module" src="/loja/admin.js"></script></head>
 <body><header class="top"><a class="brand" href="/">Amore <i>Prata</i></a><a href="/">Ver loja</a><button class="outline" id="logout" hidden>Sair</button></header><main class="workspace">
 <h1>Painel da loja</h1><p role="status" id="status"></p>
+<form class="panel login" id="passwordSetup" hidden>
+  <h2>Definir senha</h2>
+  <label>Nova senha<input type="password" name="password" autocomplete="new-password" minlength="8" maxlength="72" required></label>
+  <label>Confirme a senha<input type="password" name="confirmation" autocomplete="new-password" minlength="8" maxlength="72" required></label>
+  <button class="button">Salvar senha</button>
+</form>
 <form class="panel login" id="login" hidden><h2>Entrar</h2><label>E-mail<input type="email" name="email" autocomplete="username" required></label><label>Senha<input type="password" name="password" autocomplete="current-password" required></label><button class="button">Entrar</button></form>
 <section id="dashboard" hidden><nav class="admin-sections" aria-label="Seções do painel"><button class="outline" id="ordersTab" aria-pressed="true" aria-controls="ordersPanel"><strong>Pedidos</strong><span>Pagamentos e entregas</span></button><button class="outline" id="productsTab" aria-pressed="false" aria-controls="productsPanel"><strong>Produtos</strong><span>Catálogo da loja</span></button></nav>
 <section id="ordersPanel"><h2>Pedidos</h2>

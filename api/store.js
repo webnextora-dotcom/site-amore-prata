@@ -127,6 +127,32 @@ async function route(req,res,action,body) {
     res.setHeader('Set-Cookie','amore_session=; HttpOnly; Path=/api; SameSite=Strict; Max-Age=0; Secure');
     return {};
   }
+  if (action === 'admin-password' && req.method === 'POST') {
+    if (!configured()) fail(503,'Configure o Supabase para acessar o painel.');
+    const {token,password} = body;
+    if (typeof token !== 'string' || token.length > 8192 || !/^[\w-]+\.[\w-]+\.[\w-]+$/.test(token)) {
+      fail(401,'O link é inválido ou expirou. Solicite um novo link de acesso.');
+    }
+    if (typeof password !== 'string' || password.length < 8 || Buffer.byteLength(password,'utf8') > 72) {
+      fail(400,'Escolha uma senha de pelo menos 8 caracteres e até 72 bytes.');
+    }
+    const headers = {apikey:supabasePublic(), Authorization:'Bearer ' + token};
+    const endpoint = env.SUPABASE_URL + '/auth/v1/user';
+    const userResponse = await fetch(endpoint,{headers,signal:AbortSignal.timeout(12000)});
+    if (!userResponse.ok) fail(401,'O link é inválido ou expirou. Solicite um novo link de acesso.');
+    const user = await userResponse.json();
+    const allowed = await db('/rest/v1/store_admins?id=eq.'+encodeURIComponent(user.id)+'&select=id');
+    if (!allowed.length) fail(403,'Esta conta não tem acesso à loja.');
+    const updated = await fetch(endpoint,{
+      method:'PUT',
+      headers:{...headers,'Content-Type':'application/json'},
+      body:JSON.stringify({password}),
+      signal:AbortSignal.timeout(12000)
+    });
+    if (updated.status === 401 || updated.status === 403) fail(401,'O link é inválido ou expirou. Solicite um novo link de acesso.');
+    if (!updated.ok) fail(400,'Não foi possível definir essa senha. Tente uma senha diferente.');
+    return {};
+  }
   if (action === 'login' && req.method === 'POST') {
     if (!configured()) fail(503,'Configure o Supabase para acessar o painel.');
     const response = await fetch(env.SUPABASE_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:supabasePublic(),'Content-Type':'application/json'},body:JSON.stringify({email:clean(body.email,150),password:clean(body.password,512) === body.password ? body.password : (typeof body.password === 'string' ? body.password.slice(0,512) : '')}),signal:AbortSignal.timeout(12000)});

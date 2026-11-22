@@ -197,4 +197,47 @@ productForm.addEventListener('submit',async event => {
   } catch(error) {message.textContent = error.message;}
   finally {formBusy(productForm,false);}
 });
-load().catch(() => {});
+const passwordSetup = byId('passwordSetup');
+const authLink = new URLSearchParams(location.hash.slice(1));
+let setupToken = ['invite','recovery'].includes(authLink.get('type')) && authLink.get('access_token');
+if (authLink.has('access_token') || authLink.has('error_code')) {
+  history.replaceState(null,'',location.pathname + location.search);
+}
+
+passwordSetup.addEventListener('submit',async event => {
+  event.preventDefault();
+  const {password,confirmation} = Object.fromEntries(new FormData(passwordSetup));
+  if (password !== confirmation) {
+    status.textContent = 'As senhas precisam ser iguais.';
+    return;
+  }
+  formBusy(passwordSetup,true);
+  status.textContent = '';
+  try {
+    await api('admin-password',{token:setupToken,password});
+    setupToken = null;
+    passwordSetup.reset();
+    passwordSetup.hidden = true;
+    showSession(false);
+    status.textContent = 'Senha definida. Entre com seu e-mail e a nova senha.';
+    login.elements.email.focus();
+  } catch(error) {
+    if (error.status === 401 || error.status === 403) {
+      setupToken = null;
+      passwordSetup.reset();
+      passwordSetup.hidden = true;
+      showSession(false);
+    }
+    status.textContent = error.message;
+  } finally {
+    formBusy(passwordSetup,false);
+  }
+});
+
+if (setupToken) {
+  passwordSetup.hidden = false;
+} else {
+  load().catch(() => {}).finally(() => {
+    if (authLink.has('error_code')) status.textContent = 'O link é inválido ou expirou. Solicite um novo link de acesso.';
+  });
+}
