@@ -12,6 +12,62 @@ for (const uf of 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS
   checkout.elements.state.append(new Option(uf,uf));
 }
 
+const addressStatus = byId('cepStatus');
+const cepInput = checkout.elements.cep;
+const addressFields = {address:'logradouro',district:'bairro',city:'localidade',state:'uf'};
+const filledFromCep = {};
+let lookup;
+let queriedCep = '';
+
+async function fillAddress() {
+  const cep = cepInput.value.replace(/\D/g,'');
+  if (cep === queriedCep) return;
+  lookup?.abort();
+  queriedCep = '';
+  for (const name of Object.keys(filledFromCep)) {
+    const field = checkout.elements[name];
+    if (field.value === filledFromCep[name]) field.value = '';
+    delete filledFromCep[name];
+  }
+  addressStatus.textContent = '';
+  if (cep.length !== 8) return;
+
+  queriedCep = cep;
+  const request = new AbortController();
+  lookup = request;
+  const timeout = setTimeout(() => request.abort(),6000);
+  const previous = Object.fromEntries(Object.keys(addressFields).map(name => [name,checkout.elements[name].value]));
+  addressStatus.textContent = 'Buscando endereço…';
+  try {
+    const response = await fetch('https://viacep.com.br/ws/'+cep+'/json/',{signal:request.signal});
+    if (!response.ok) throw new Error('CEP indisponível');
+    const result = await response.json();
+    if (lookup !== request || queriedCep !== cep) return;
+    if (result.erro) {
+      addressStatus.textContent = 'CEP não encontrado. Confira o número ou preencha o endereço manualmente.';
+      return;
+    }
+    for (const [name,key] of Object.entries(addressFields)) {
+      const field = checkout.elements[name];
+      if (result[key] && field.value === previous[name]) {
+        field.value = result[key];
+        filledFromCep[name] = field.value;
+      }
+    }
+    addressStatus.textContent = result.logradouro && result.bairro
+      ? 'Confira o endereço e informe o número.'
+      : 'Complete os campos do endereço que ficaram em branco.';
+  } catch {
+    if (lookup !== request || queriedCep !== cep) return;
+    queriedCep = '';
+    addressStatus.textContent = 'A consulta ao CEP está indisponível. Você pode preencher o endereço manualmente.';
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+cepInput.addEventListener('input',fillAddress);
+cepInput.addEventListener('change',fillAddress);
+
 function selected() {
   return catalog.filter(item => Number.isInteger(quantities[item.id]) && quantities[item.id] > 0 && quantities[item.id] <= 10);
 }
