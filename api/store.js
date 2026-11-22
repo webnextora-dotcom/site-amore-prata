@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 const categories = ['Anéis','Brincos','Colares','Pulseiras'];
 const uuid = /^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i;
 const env = process.env;
+const supabaseSecret = () => env.SUPABASE_SECRET_KEY?.trim();
+const supabasePublic = () => env.SUPABASE_PUBLISHABLE_KEY?.trim();
 const configured = () => Boolean(env.SUPABASE_URL && env.SUPABASE_PUBLISHABLE_KEY && env.SUPABASE_SECRET_KEY);
 const shipping = () => Number(env.SHIPPING_CENTS);
 const infinitePayHandle = () => env.INFINITEPAY_HANDLE?.trim().replace(/^\$/, '');
@@ -28,9 +30,12 @@ async function upstream(url, options, message) {
 }
 
 function db(path, { method = 'GET', data, file, type } = {}) {
+  if (!/^sb_secret_[A-Za-z0-9_-]+$/.test(supabaseSecret() || '')) {
+    fail(503, 'A chave secreta do Supabase precisa ser configurada.');
+  }
   return upstream(env.SUPABASE_URL + path, {
     method,
-    headers: { apikey: env.SUPABASE_SECRET_KEY, 'Content-Type': type || 'application/json', Prefer: 'return=representation' },
+    headers: { apikey: supabaseSecret(), 'Content-Type': type || 'application/json', Prefer: 'return=representation' },
     body: file || (data === undefined ? undefined : JSON.stringify(data))
   }, 'O Supabase está indisponível ou precisa ser configurado.');
 }
@@ -47,7 +52,7 @@ async function admin(req) {
   if (!configured()) fail(503, 'Configure o Supabase para acessar o painel.');
   const token = (req.headers.cookie || '').match(/(?:^|;\s*)amore_session=([^;]+)/)?.[1];
   if (!token) fail(401,'Entre para acessar o painel.');
-  const response = await fetch(env.SUPABASE_URL + '/auth/v1/user', {headers:{apikey:env.SUPABASE_PUBLISHABLE_KEY, Authorization:'Bearer ' + token}, signal:AbortSignal.timeout(12000)});
+  const response = await fetch(env.SUPABASE_URL + '/auth/v1/user', {headers:{apikey:supabasePublic(), Authorization:'Bearer ' + token}, signal:AbortSignal.timeout(12000)});
   if (!response.ok) fail(401,'Sua sessão expirou. Entre novamente.');
   const user = await response.json();
   const allowed = await db('/rest/v1/store_admins?id=eq.' + encodeURIComponent(user.id) + '&select=id');
@@ -121,7 +126,7 @@ async function route(req,res,action,body) {
   }
   if (action === 'login' && req.method === 'POST') {
     if (!configured()) fail(503,'Configure o Supabase para acessar o painel.');
-    const response = await fetch(env.SUPABASE_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:env.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:clean(body.email,150),password:clean(body.password,512) === body.password ? body.password : (typeof body.password === 'string' ? body.password.slice(0,512) : '')}),signal:AbortSignal.timeout(12000)});
+    const response = await fetch(env.SUPABASE_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:supabasePublic(),'Content-Type':'application/json'},body:JSON.stringify({email:clean(body.email,150),password:clean(body.password,512) === body.password ? body.password : (typeof body.password === 'string' ? body.password.slice(0,512) : '')}),signal:AbortSignal.timeout(12000)});
     if (!response.ok) fail(401,'E-mail ou senha inválidos.');
     const session = await response.json();
     const allowed = await db('/rest/v1/store_admins?id=eq.'+encodeURIComponent(session.user.id)+'&select=id');
@@ -175,6 +180,9 @@ export default async function handler(req,res) {
     res.statusCode = 200;
     res.end(JSON.stringify(result));
   } catch (error) {
+    if (!error.status && !(error instanceof SyntaxError)) {
+      console.error('Store request failed', { route: req.query?.route, name: error.name, cause: error.cause?.code });
+    }
     res.statusCode = error.status || (error instanceof SyntaxError ? 400 : 500);
     res.end(JSON.stringify({error:error.status ? error.message : 'Não foi possível concluir a operação.'}));
   }
