@@ -126,7 +126,14 @@ h2 em { color: var(--rose-deep); }
   .mobile-nav a { padding-block: .4rem; }
   .hero { grid-template-columns: 1fr; }
   .hero-content { padding: 2.5rem var(--gutter) 1.75rem; }
-  .hero-photo { aspect-ratio: 5 / 3; margin: 0 var(--gutter) 1.5rem; border-radius: 45% 45% 0 0 / 55% 55% 0 0; }
+  .hero-photo {
+    aspect-ratio: 3 / 4;
+    width: min(calc(100% - 2 * var(--gutter)), 26rem);
+    margin: 0 auto 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: .5rem;
+  }
+  .hero-photo img { object-position: center 38%; }
   .section-heading, .visit-intro, .gift { grid-template-columns: 1fr; }
   .product-track { grid-auto-columns: 46%; gap: .75rem; }
   .gift img { min-height: 0; max-height: 21rem; object-position: center 43%; }
