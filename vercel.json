@@ -68,6 +68,11 @@
   ],
   "redirects": [
     {
+      "source": "/loja/",
+      "destination": "/",
+      "permanent": true
+    },
+    {
       "source": "/loja",
       "destination": "/",
       "permanent": true
