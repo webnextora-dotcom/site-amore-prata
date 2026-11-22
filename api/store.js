@@ -25,12 +25,15 @@ function fail(status, message) {
 
 async function upstream(url, options, message) {
   const response = await fetch(url, { ...options, signal: AbortSignal.timeout(12000) });
-  if (!response.ok) fail(502, message);
+  if (!response.ok) {
+    console.error('Store upstream rejected request', { host: new URL(url).hostname, status: response.status });
+    fail(502, message);
+  }
   return response.status === 204 ? null : response.json();
 }
 
 function db(path, { method = 'GET', data, file, type } = {}) {
-  if (!/^sb_secret_[A-Za-z0-9_-]+$/.test(supabaseSecret() || '')) {
+  if (!supabaseSecret()?.startsWith('sb_secret_') || !/^[\x21-\x7E]+$/.test(supabaseSecret())) {
     fail(503, 'A chave secreta do Supabase precisa ser configurada.');
   }
   return upstream(env.SUPABASE_URL + path, {
