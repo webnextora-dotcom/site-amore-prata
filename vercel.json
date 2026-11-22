@@ -6,7 +6,7 @@
     {"source": "/api/order-payment", "destination": "/api/store?route=order-payment"},
     {"source": "/api/shipping-quote", "destination": "/api/store?route=shipping-quote"},
     {"source": "/api/order-tracking", "destination": "/api/store?route=order-tracking"},
-    {"source": "/api/delete-order", "destination": "/api/store?route=delete-order"},
+    {"source": "/api/delete-product", "destination": "/api/store?route=delete-product"},
     {"source": "/api/admin-password", "destination": "/api/store?route=admin-password"},
     {
       "source": "/admin",

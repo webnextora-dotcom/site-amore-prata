@@ -69,7 +69,7 @@ async function requestShipping(body) {
   if (!Array.isArray(body.items) || !body.items.length || body.items.length > 30) fail(400,'Confira sua sacola.');
   const ids = [...new Set(body.items.map(item => item?.id))];
   if (ids.length !== body.items.length || ids.some(id => !uuid.test(id))) fail(400,'Confira sua sacola.');
-  const rows = await db('/rest/v1/products?active=eq.true&select=id,name,price&id=in.(' + ids.join(',') + ')');
+  const rows = await db('/rest/v1/products?active=eq.true&deleted_at=is.null&select=id,name,price&id=in.(' + ids.join(',') + ')');
   const items = body.items.map(({id,quantity}) => {
     const product = rows.find(row => row.id === id);
     if (!product || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) fail(400,'Confira a disponibilidade e as quantidades da sacola.');
@@ -143,7 +143,7 @@ async function confirm(body) {
 
 async function route(req,res,action,body) {
   if (action === 'catalog' && req.method === 'GET') {
-    return {products:configured() ? await db('/rest/v1/products?active=eq.true&select=id,name,category,description,image_url,price&order=created_at.desc') : demo, demo:!configured(), checkout:checkoutReady()};
+    return {products:configured() ? await db('/rest/v1/products?active=eq.true&deleted_at=is.null&select=id,name,category,description,image_url,price&order=created_at.desc') : demo, demo:!configured(), checkout:checkoutReady()};
   }
   if (action === 'checkout' && req.method === 'POST') return requestShipping(body);
   if (action === 'order-status' && req.method === 'POST') {
@@ -203,7 +203,7 @@ async function route(req,res,action,body) {
     res.setHeader('Set-Cookie','amore_session='+session.access_token+'; HttpOnly; Path=/api; SameSite=Strict; Secure; Max-Age='+session.expires_in);
     return {};
   }
-  if (!['dashboard','product','fulfillment','delete-order','shipping-quote','order-tracking'].includes(action)) fail(404,'Página não encontrada.');
+  if (!['dashboard','product','fulfillment','delete-product','shipping-quote','order-tracking'].includes(action)) fail(404,'Página não encontrada.');
   await admin(req);
   if (action === 'dashboard' && req.method === 'GET') {
     const offset = Number(req.query.offset ?? 0);
@@ -220,7 +220,7 @@ async function route(req,res,action,body) {
       filters.set(column,'in.('+values.join(',')+')');
     }
     const [products,orders] = await Promise.all([
-      db('/rest/v1/products?order=created_at.desc'),
+      db('/rest/v1/products?deleted_at=is.null&order=created_at.desc'),
       db('/rest/v1/orders?select=id,customer,items,total,shipping,payment_status,fulfillment,created_at,shipping_requested,shipping_method,shipping_days,tracking_code&order=created_at.desc,id.desc&deleted_at=is.null&limit=26&offset='+offset+'&'+filters)
     ]);
     return {products, orders:orders.slice(0,25), more:orders.length > 25};
@@ -254,10 +254,10 @@ async function route(req,res,action,body) {
     if (!updated) fail(404,'Pedido pago não encontrado.');
     return {};
   }
-  if (action === 'delete-order' && req.method === 'POST') {
-    if (typeof body.id !== 'string' || !uuid.test(body.id)) fail(400,'Pedido inválido.');
-    await db('/rest/v1/orders?id=eq.'+body.id+'&deleted_at=is.null',{
-      method:'PATCH',data:{deleted_at:new Date().toISOString()}
+  if (action === 'delete-product' && req.method === 'POST') {
+    if (typeof body.id !== 'string' || !uuid.test(body.id)) fail(400,'Produto inválido.');
+    await db('/rest/v1/products?id=eq.'+body.id+'&deleted_at=is.null',{
+      method:'PATCH',data:{active:false,deleted_at:new Date().toISOString()}
     });
     return {};
   }
@@ -278,7 +278,7 @@ async function route(req,res,action,body) {
       await db('/storage/v1/object/product-images/'+filename,{method:'POST',type:matches[1],file});
       data.image_url = env.SUPABASE_URL+'/storage/v1/object/public/product-images/'+filename;
     }
-    const saved = await db('/rest/v1/products'+(body.id?'?id=eq.'+body.id:''),{method:body.id?'PATCH':'POST',data});
+    const saved = await db('/rest/v1/products'+(body.id?'?id=eq.'+body.id+'&deleted_at=is.null':''),{method:body.id?'PATCH':'POST',data});
     if (!saved.length) fail(404,'Produto não encontrado.');
     return {};
   }

@@ -123,27 +123,6 @@ function renderOrders(orders,more) {
       });
       actions.append(update);
     }
-    const remove = button('Excluir pedido',async () => {
-      const paymentNotice = 'A exclusão do painel não cancela nem estorna pagamentos.';
-      if (!window.confirm('Excluir o pedido de '+customer.name+' do painel? '+paymentNotice)) return;
-      for (const action of actions.querySelectorAll('button')) action.disabled = true;
-      status.textContent = '';
-      try {
-        await api('delete-order',{id:order.id});
-      } catch(error) {
-        for (const action of actions.querySelectorAll('button')) action.disabled = false;
-        status.textContent = error.message;
-        return;
-      }
-      card.remove();
-      offset = 0;
-      try {
-        await load();
-        status.textContent = 'Pedido excluído.';
-      } catch(error) {
-        status.textContent = 'Pedido excluído. Atualize a página para recarregar a lista.';
-      }
-    });
     if (order.shipping_requested) {
       const url = new URL('/pedido?id='+encodeURIComponent(order.id),location.origin);
       actions.append(button('Copiar link do pedido',async () => {
@@ -160,8 +139,7 @@ function renderOrders(orders,more) {
       link.rel = 'noopener noreferrer';
       actions.append(link);
     }
-    actions.append(remove);
-    card.append(actions);
+    if (actions.childElementCount) card.append(actions);
     view.append(card);
   }
   byId('prev').hidden = offset === 0;
@@ -198,7 +176,32 @@ function renderProducts() {
     const row = element('article',undefined,'panel toolbar');
     const info = element('div');
     info.append(element('strong',product.name),element('div',product.category+' · '+money(product.price)+' · '+(product.active?'Publicado':'Oculto')));
-    row.append(info,button('Editar',() => edit(product)));
+    const actions = element('div',undefined,'admin-tabs');
+    const editProduct = button('Editar',() => edit(product));
+    const remove = button('Excluir produto',async () => {
+      if (!window.confirm('Excluir '+product.name+' do cadastro e do catálogo?')) return;
+      editProduct.disabled = true;
+      remove.disabled = true;
+      status.textContent = '';
+      try {
+        await api('delete-product',{id:product.id});
+      } catch(error) {
+        editProduct.disabled = false;
+        remove.disabled = false;
+        status.textContent = error.message;
+        return;
+      }
+      products = products.filter(item => item.id !== product.id);
+      renderProducts();
+      try {
+        await load();
+        status.textContent = 'Produto excluído.';
+      } catch {
+        status.textContent = 'Produto excluído. Atualize a página para recarregar o cadastro.';
+      }
+    });
+    actions.append(editProduct,remove);
+    row.append(info,actions);
     view.append(row);
   }
 }
