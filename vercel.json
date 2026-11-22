@@ -65,5 +65,17 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/loja",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/loja/index.html",
+      "destination": "/",
+      "permanent": true
+    }
   ]
 }

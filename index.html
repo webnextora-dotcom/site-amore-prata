@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f0ed">
-  <meta name="description" content="Explore as joias da Amore Prata, escolha um presente e consulte as peças pelo WhatsApp. Visite nossas lojas em Teresina e Caxias.">
+  <meta name="description" content="Compre joias da Amore Prata e encontre presentes. Visite nossas lojas em Teresina e Caxias.">
   <title>Amore Prata | Joias para usar e presentear</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,14 +16,14 @@
   <div class="announcement">Garantia vitalícia · Atendimento em Teresina e Caxias</div>
   <header class="site-header">
     <a class="brand" href="#inicio" aria-label="Amore Prata, início"><img src="logo.png" alt="Amore Prata" onerror="this.hidden=true; this.nextElementSibling.hidden=false"><span hidden>Amore Prata</span></a>
-    <nav class="desktop-nav" aria-label="Navegação principal"><a href="#essencia">Coleção</a><a href="/loja/">Loja online</a>
+    <nav class="desktop-nav" aria-label="Navegação principal"><a href="#essencia">Coleção</a>
       <a href="#presentes">Presentes</a>
       <a href="#visite">Lojas</a></nav>
     <div class="header-actions">
-      <button class="selection-toggle" type="button" data-open-selection hidden>Minha seleção <span data-count>0</span></button>
+      <button class="selection-toggle" id="bag" type="button">Sacola <span id="count">0</span></button>
       <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobile-nav" hidden>Menu</button>
     </div>
-    <nav class="mobile-nav" id="mobile-nav" aria-label="Navegação para celular" hidden><a href="#essencia">Coleção</a><a href="/loja/">Loja online</a>
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Navegação para celular" hidden><a href="#essencia">Coleção</a>
       <a href="#presentes">Presentes</a>
       <a href="#visite">Lojas</a></nav>
   </header>
@@ -46,179 +46,11 @@
     <section class="catalog wrap" id="essencia" aria-labelledby="catalog-title">
       <div class="section-heading">
         <div><p class="eyebrow">A coleção</p><h2 id="catalog-title">Encontre sua próxima <em>joia.</em></h2></div>
-        <p>Explore as peças e monte sua seleção para consultar preço e disponibilidade com a loja.</p>
+        <p>Escolha suas peças e finalize a compra pela loja online.</p>
       </div>
-      <div class="category-links" aria-label="Categorias"><a href="#aneis">Anéis</a><a href="#brincos">Brincos</a><a href="#colares">Colares</a><a href="#pulseiras">Pulseiras</a></div>
-      <section class="product-category" id="aneis">
-        <div class="category-heading"><h3>Anéis</h3><div class="track-controls" hidden><button type="button" data-step="-1" aria-label="Ver peças anteriores de Anéis">‹</button><button type="button" data-step="1" aria-label="Ver mais peças de Anéis">›</button></div></div>
-        <div class="product-track" tabindex="0" role="region" aria-label="Vitrine de Anéis">
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/aneis/item-01.jpeg" alt="Aliança em prata" loading="lazy" decoding="async"></div>
-          <h4>Aliança em prata</h4>
-          <button class="select-product" type="button" data-product="produtos/aneis/item-01.jpeg" aria-label="Selecionar Aliança em prata (01)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/aneis/item-02.jpeg" alt="Aliança com detalhes" loading="lazy" decoding="async"></div>
-          <h4>Aliança com detalhes</h4>
-          <button class="select-product" type="button" data-product="produtos/aneis/item-02.jpeg" aria-label="Selecionar Aliança com detalhes (02)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/aneis/item-03.jpeg" alt="Conjunto de anéis" loading="lazy" decoding="async"></div>
-          <h4>Conjunto de anéis</h4>
-          <button class="select-product" type="button" data-product="produtos/aneis/item-03.jpeg" aria-label="Selecionar Conjunto de anéis (03)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/aneis/item-04.jpeg" alt="Anel em prata" loading="lazy" decoding="async"></div>
-          <h4>Anel em prata</h4>
-          <button class="select-product" type="button" data-product="produtos/aneis/item-04.jpeg" aria-label="Selecionar Anel em prata (04)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/aneis/item-05.jpeg" alt="Anel solitário" loading="lazy" decoding="async"></div>
-          <h4>Anel solitário</h4>
-          <button class="select-product" type="button" data-product="produtos/aneis/item-05.jpeg" aria-label="Selecionar Anel solitário (05)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/aneis/item-06.jpeg" alt="Anel delicado em prata" loading="lazy" decoding="async"></div>
-          <h4>Anel delicado em prata</h4>
-          <button class="select-product" type="button" data-product="produtos/aneis/item-06.jpeg" aria-label="Selecionar Anel delicado em prata (06)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/aneis/item-07.jpeg" alt="Anel em prata" loading="lazy" decoding="async"></div>
-          <h4>Anel em prata</h4>
-          <button class="select-product" type="button" data-product="produtos/aneis/item-07.jpeg" aria-label="Selecionar Anel em prata (07)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-              </div>
-      </section>
-      <section class="product-category" id="brincos">
-        <div class="category-heading"><h3>Brincos</h3><div class="track-controls" hidden><button type="button" data-step="-1" aria-label="Ver peças anteriores de Brincos">‹</button><button type="button" data-step="1" aria-label="Ver mais peças de Brincos">›</button></div></div>
-        <div class="product-track" tabindex="0" role="region" aria-label="Vitrine de Brincos">
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/brincos/item-01.jpeg" alt="Brinco cravejado" loading="lazy" decoding="async"></div>
-          <h4>Brinco cravejado</h4>
-          <button class="select-product" type="button" data-product="produtos/brincos/item-01.jpeg" aria-label="Selecionar Brinco cravejado (01)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/brincos/item-02.jpeg" alt="Brincos em prata" loading="lazy" decoding="async"></div>
-          <h4>Brincos em prata</h4>
-          <button class="select-product" type="button" data-product="produtos/brincos/item-02.jpeg" aria-label="Selecionar Brincos em prata (02)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/brincos/item-03.jpeg" alt="Brincos delicados" loading="lazy" decoding="async"></div>
-          <h4>Brincos delicados</h4>
-          <button class="select-product" type="button" data-product="produtos/brincos/item-03.jpeg" aria-label="Selecionar Brincos delicados (03)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/brincos/item-04.jpeg" alt="Brincos em prata" loading="lazy" decoding="async"></div>
-          <h4>Brincos em prata</h4>
-          <button class="select-product" type="button" data-product="produtos/brincos/item-04.jpeg" aria-label="Selecionar Brincos em prata (04)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/brincos/item-05.jpeg" alt="Brincos para todos os dias" loading="lazy" decoding="async"></div>
-          <h4>Brincos para todos os dias</h4>
-          <button class="select-product" type="button" data-product="produtos/brincos/item-05.jpeg" aria-label="Selecionar Brincos para todos os dias (05)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/brincos/item-06.jpeg" alt="Conjunto de brinco e colar" loading="lazy" decoding="async"></div>
-          <h4>Conjunto de brinco e colar</h4>
-          <button class="select-product" type="button" data-product="produtos/brincos/item-06.jpeg" aria-label="Selecionar Conjunto de brinco e colar (06)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-              </div>
-      </section>
-      <section class="product-category" id="colares">
-        <div class="category-heading"><h3>Colares</h3><div class="track-controls" hidden><button type="button" data-step="-1" aria-label="Ver peças anteriores de Colares">‹</button><button type="button" data-step="1" aria-label="Ver mais peças de Colares">›</button></div></div>
-        <div class="product-track" tabindex="0" role="region" aria-label="Vitrine de Colares">
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/colares/item-01.jpeg" alt="Colares em prata" loading="lazy" decoding="async"></div>
-          <h4>Colares em prata</h4>
-          <button class="select-product" type="button" data-product="produtos/colares/item-01.jpeg" aria-label="Selecionar Colares em prata (01)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/colares/item-02.jpeg" alt="Colares femininos" loading="lazy" decoding="async"></div>
-          <h4>Colares femininos</h4>
-          <button class="select-product" type="button" data-product="produtos/colares/item-02.jpeg" aria-label="Selecionar Colares femininos (02)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/colares/item-03.jpeg" alt="Colar masculino em prata" loading="lazy" decoding="async"></div>
-          <h4>Colar masculino em prata</h4>
-          <button class="select-product" type="button" data-product="produtos/colares/item-03.jpeg" aria-label="Selecionar Colar masculino em prata (03)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/colares/item-04.jpeg" alt="Conjunto de colar e brincos" loading="lazy" decoding="async"></div>
-          <h4>Conjunto de colar e brincos</h4>
-          <button class="select-product" type="button" data-product="produtos/colares/item-04.jpeg" aria-label="Selecionar Conjunto de colar e brincos (04)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/colares/item-05.jpeg" alt="Conjunto de prata" loading="lazy" decoding="async"></div>
-          <h4>Conjunto de prata</h4>
-          <button class="select-product" type="button" data-product="produtos/colares/item-05.jpeg" aria-label="Selecionar Conjunto de prata (05)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/colares/item-06.jpeg" alt="Conjunto de colar e brincos" loading="lazy" decoding="async"></div>
-          <h4>Conjunto de colar e brincos</h4>
-          <button class="select-product" type="button" data-product="produtos/colares/item-06.jpeg" aria-label="Selecionar Conjunto de colar e brincos (06)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/colares/item-07.jpeg" alt="Cordão masculino banhado" loading="lazy" decoding="async"></div>
-          <h4>Cordão masculino banhado</h4>
-          <button class="select-product" type="button" data-product="produtos/colares/item-07.jpeg" aria-label="Selecionar Cordão masculino banhado (07)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/colares/item-08.jpeg" alt="Escapulário em prata" loading="lazy" decoding="async"></div>
-          <h4>Escapulário em prata</h4>
-          <button class="select-product" type="button" data-product="produtos/colares/item-08.jpeg" aria-label="Selecionar Escapulário em prata (08)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/colares/item-09.jpeg" alt="Colar em prata" loading="lazy" decoding="async"></div>
-          <h4>Colar em prata</h4>
-          <button class="select-product" type="button" data-product="produtos/colares/item-09.jpeg" aria-label="Selecionar Colar em prata (09)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/colares/item-10.jpeg" alt="Colar delicado" loading="lazy" decoding="async"></div>
-          <h4>Colar delicado</h4>
-          <button class="select-product" type="button" data-product="produtos/colares/item-10.jpeg" aria-label="Selecionar Colar delicado (10)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-              </div>
-      </section>
-      <section class="product-category" id="pulseiras">
-        <div class="category-heading"><h3>Pulseiras</h3><div class="track-controls" hidden><button type="button" data-step="-1" aria-label="Ver peças anteriores de Pulseiras">‹</button><button type="button" data-step="1" aria-label="Ver mais peças de Pulseiras">›</button></div></div>
-        <div class="product-track" tabindex="0" role="region" aria-label="Vitrine de Pulseiras">
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/pulseiras/item-01.jpeg" alt="Pulseira de berloques" loading="lazy" decoding="async"></div>
-          <h4>Pulseira de berloques</h4>
-          <button class="select-product" type="button" data-product="produtos/pulseiras/item-01.jpeg" aria-label="Selecionar Pulseira de berloques (01)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/pulseiras/item-02.jpeg" alt="Pulseira em prata" loading="lazy" decoding="async"></div>
-          <h4>Pulseira em prata</h4>
-          <button class="select-product" type="button" data-product="produtos/pulseiras/item-02.jpeg" aria-label="Selecionar Pulseira em prata (02)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/pulseiras/item-03.jpeg" alt="Pulseira delicada" loading="lazy" decoding="async"></div>
-          <h4>Pulseira delicada</h4>
-          <button class="select-product" type="button" data-product="produtos/pulseiras/item-03.jpeg" aria-label="Selecionar Pulseira delicada (03)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/pulseiras/item-04.jpeg" alt="Pulseira em prata" loading="lazy" decoding="async"></div>
-          <h4>Pulseira em prata</h4>
-          <button class="select-product" type="button" data-product="produtos/pulseiras/item-04.jpeg" aria-label="Selecionar Pulseira em prata (04)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/pulseiras/item-05.jpeg" alt="Pulseira feminina" loading="lazy" decoding="async"></div>
-          <h4>Pulseira feminina</h4>
-          <button class="select-product" type="button" data-product="produtos/pulseiras/item-05.jpeg" aria-label="Selecionar Pulseira feminina (05)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/pulseiras/item-06.jpeg" alt="Pulseira em prata" loading="lazy" decoding="async"></div>
-          <h4>Pulseira em prata</h4>
-          <button class="select-product" type="button" data-product="produtos/pulseiras/item-06.jpeg" aria-label="Selecionar Pulseira em prata (06)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-        <article class="product-card">
-          <div class="product-photo"><img src="produtos/pulseiras/item-07.jpeg" alt="Pulseiras em prata" loading="lazy" decoding="async"></div>
-          <h4>Pulseiras em prata</h4>
-          <button class="select-product" type="button" data-product="produtos/pulseiras/item-07.jpeg" aria-label="Selecionar Pulseiras em prata (07)" aria-pressed="false" hidden>Selecionar</button>
-        </article>
-              </div>
-      </section>
+      <nav id="filters" aria-label="Categorias"></nav>
+      <p id="catalogStatus" role="status"></p>
+      <div id="products" class="products"></div>
     </section>
     <section class="gift" id="presentes">
       <img src="produtos/aneis/item-06.jpeg" alt="Anel delicado em prata da coleção Amore Prata" loading="lazy" decoding="async">
@@ -250,22 +82,23 @@
   </main>
   <footer class="site-footer">
     <a href="#inicio" class="footer-brand">Amore Prata</a>
-    <nav aria-label="Navegação do rodapé"><a href="#essencia">Coleção</a><a href="/loja/">Loja online</a>
+    <nav aria-label="Navegação do rodapé"><a href="#essencia">Coleção</a>
       <a href="#presentes">Presentes</a>
       <a href="#visite">Lojas</a></nav>
     <p>© Amore Prata</p>
   </footer>
-  <dialog class="selection-dialog" aria-labelledby="selection-title">
-    <div class="dialog-heading"><h2 id="selection-title">Minha seleção</h2><form method="dialog"><button type="submit">Fechar</button></form></div>
-    <p data-empty>Nenhuma peça selecionada.</p>
-    <ul data-selection></ul>
-    <form data-order hidden>
-      <label for="order-store">Qual loja deve receber sua seleção?</label>
-      <select id="order-store" required></select>
-      <p>Confirme valores, disponibilidade e pagamento com a loja pelo WhatsApp.</p>
-      <button class="button" type="submit">Enviar seleção pelo WhatsApp</button>
-    </form>
-  </dialog>
-  <script src="script.js" defer></script>
+  <dialog id="cart" class="selection-dialog" aria-labelledby="cart-title"><div class="dialog-heading"><h2 id="cart-title">Sua sacola</h2><form method="dialog"><button class="outline" aria-label="Fechar sacola">Fechar</button></form></div><div id="lines"></div><p id="totals"></p><form id="checkout" hidden><h3>Dados para entrega</h3><div class="fields">
+<label class="wide">Nome completo<input name="name" autocomplete="name" maxlength="120" required></label>
+<label>E-mail<input name="email" type="email" autocomplete="email" maxlength="150" required></label>
+<label>Telefone<input name="phone" type="tel" autocomplete="tel" maxlength="24" required></label>
+<label>CEP<input name="cep" autocomplete="postal-code" inputmode="numeric" maxlength="9" required></label>
+<label>UF<select name="state" autocomplete="address-level1" required><option value="">Selecione</option></select></label>
+<label class="wide">Rua ou avenida<input name="address" autocomplete="address-line1" maxlength="180" required></label>
+<label>Número<input name="number" maxlength="20" required></label>
+<label>Complemento<input name="complement" autocomplete="address-line2" maxlength="100"></label>
+<label>Bairro<input name="district" maxlength="100" required></label>
+<label>Cidade<input name="city" autocomplete="address-level2" maxlength="100" required></label></div><button class="button" type="submit">Pagar com InfinitePay</button></form><p id="cartStatus" role="status"></p></dialog>
+  <script src="/script.js" defer></script>
+  <script type="module" src="/loja/shop.js"></script>
 </body>
 </html>
