@@ -64,8 +64,7 @@ function clean(value, size) {
   return typeof value === 'string' ? value.trim().slice(0,size) : '';
 }
 
-async function requestShipping(body) {
-  if (!checkoutReady()) fail(503,'As compras online ainda não estão disponíveis.');
+async function checkoutItems(body) {
   if (!Array.isArray(body.items) || !body.items.length || body.items.length > 30) fail(400,'Confira sua sacola.');
   const ids = [...new Set(body.items.map(item => item?.id))];
   if (ids.length !== body.items.length || ids.some(id => !uuid.test(id))) fail(400,'Confira sua sacola.');
@@ -75,14 +74,91 @@ async function requestShipping(body) {
     if (!product || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) fail(400,'Confira a disponibilidade e as quantidades da sacola.');
     return {description:product.name,price:product.price,quantity};
   });
+  return items;
+}
+
+const shippingServices = {'1':'PAC','2':'SEDEX'};
+
+function superFreteSettings() {
+  if (!env.SUPERFRETE_TOKEN?.trim()) return null;
+  let box;
+  try { box = JSON.parse(env.SUPERFRETE_BOX || 'null'); } catch { return null; }
+  if (!box || !Number.isInteger(box.maxItems) || box.maxItems < 1
+    || !['weight','height','width','length'].every(key => Number.isFinite(box[key]) && box[key] > 0)) return null;
+  const {maxItems,weight,height,width,length} = box;
+  return {maxItems,weight,height,width,length};
+}
+
+async function deliveryOptions(cep,items) {
+  const box = superFreteSettings();
+  if (!/^\d{8}$/.test(cep)) fail(400,'Informe um CEP com oito dígitos.');
+  const subtotal = items.reduce((sum,item) => sum + item.price * item.quantity,0);
+  const quantity = items.reduce((sum,item) => sum + item.quantity,0);
+  if (!box || quantity > box.maxItems || subtotal <= 0 || subtotal > 99999999) return [];
+  const {weight,height,width,length} = box;
+
+  let result;
+  try {
+    result = await upstream('https://api.superfrete.com/api/v0/calculator',{
+      method:'POST',
+      headers:{
+        Authorization:'Bearer ' + env.SUPERFRETE_TOKEN.trim(),
+        'User-Agent':'Amore Prata (joiasamoreprata@gmail.com)',
+        'Content-Type':'application/json',
+        Accept:'application/json'
+      },
+      body:JSON.stringify({
+        from:{postal_code:'64046010'},
+        to:{postal_code:cep},
+        services:'1,2',
+        package:{weight,height,width,length},
+        options:{insurance_value:subtotal/100,use_insurance_value:true}
+      })
+    },'O SuperFrete está indisponível.');
+  } catch {
+    fail(502,'Não foi possível calcular o frete agora. Tente novamente ou solicite uma cotação manual.');
+  }
+  if (!Array.isArray(result)) fail(502,'Não foi possível calcular o frete agora.');
+  const options = new Map();
+  for (const option of result) {
+    const id = String(option?.id);
+    if (!Object.hasOwn(shippingServices,id) || option.error) continue;
+    const price = Math.round(Number(option.price)*100);
+    const days = Number(option.delivery_range?.max ?? option.delivery_time);
+    const [parcel] = Array.isArray(option.packages) ? option.packages : [];
+    const insured = Math.round(Number(parcel?.insurance_value)*100);
+    if (option.packages?.length !== 1 || insured !== subtotal
+      || !Number.isSafeInteger(price) || price <= 0 || price > 100000
+      || !Number.isInteger(days) || days < 1 || days > 60) continue;
+    options.set(id,{id,method:shippingServices[id],price,days});
+  }
+  return [...options.values()].sort((a,b) => a.price - b.price);
+}
+
+async function requestShipping(body) {
+  if (!checkoutReady()) fail(503,'As compras online ainda não estão disponíveis.');
+  const items = await checkoutItems(body);
   const customer = Object.fromEntries(Object.entries({name:120,email:150,phone:24,cep:12,address:180,number:20,complement:100,district:100,city:100,state:2}).map(([field,size]) => [field,clean(body.customer?.[field],size)]));
   customer.phone = customer.phone.replace(/\D/g,'').replace(/^55(?=\d{10,11}$)/,'');
   customer.cep = customer.cep.replace(/\D/g,'');
   if (!customer.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email) || !/^\d{10,11}$/.test(customer.phone) || !/^\d{8}$/.test(customer.cep) || !customer.address || !customer.number || !customer.district || !customer.city || !/^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/.test(customer.state)) fail(400,'Preencha seus dados de contato e endereço.');
   const total = items.reduce((sum,item) => sum + item.price * item.quantity,0);
   if (total > 99999999) fail(400,'O total da sacola excede o limite do pedido.');
+  let delivery;
+  if (body.delivery) {
+    const options = await deliveryOptions(customer.cep,items);
+    delivery = options.find(option => option.id === body.delivery.id);
+    if (!delivery || delivery.price !== body.delivery.price || delivery.days !== body.delivery.days) {
+      fail(409,'A cotação mudou. Calcule o frete novamente antes de continuar.');
+    }
+  }
   const id = randomUUID();
-  await db('/rest/v1/orders',{method:'POST',data:{id,customer,items,total,shipping:0,shipping_requested:true}});
+  const shipping = delivery?.price ?? 0;
+  if (total + shipping > 99999999) fail(400,'O total da sacola excede o limite do pedido.');
+  await db('/rest/v1/orders',{method:'POST',data:{
+    id,customer,items,total:total+shipping,shipping,shipping_requested:true,
+    ...(delivery && {shipping_method:delivery.method,shipping_days:delivery.days})
+  }});
   return {id};
 }
 
@@ -143,7 +219,12 @@ async function confirm(body) {
 
 async function route(req,res,action,body) {
   if (action === 'catalog' && req.method === 'GET') {
-    return {products:configured() ? await db('/rest/v1/products?active=eq.true&deleted_at=is.null&select=id,name,category,description,image_url,price&order=created_at.desc') : demo, demo:!configured(), checkout:checkoutReady()};
+    return {products:configured() ? await db('/rest/v1/products?active=eq.true&deleted_at=is.null&select=id,name,category,description,image_url,price&order=created_at.desc') : demo, demo:!configured(), checkout:checkoutReady(), autoShipping:Boolean(superFreteSettings())};
+  }
+  if (action === 'delivery-options' && req.method === 'POST') {
+    if (!checkoutReady() || !superFreteSettings()) fail(503,'A cotação automática está indisponível.');
+    const cep = clean(body.cep,12).replace(/\D/g,'');
+    return {options:await deliveryOptions(cep,await checkoutItems(body))};
   }
   if (action === 'checkout' && req.method === 'POST') return requestShipping(body);
   if (action === 'order-status' && req.method === 'POST') {

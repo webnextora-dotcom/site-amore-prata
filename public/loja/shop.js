@@ -8,6 +8,30 @@ try { quantities = JSON.parse(localStorage.getItem('amore_cart')) || {}; } catch
 
 const cart = byId('cart');
 const checkout = byId('checkout');
+const shippingOptions = byId('shippingOptions');
+const shippingStatus = byId('shippingStatus');
+const calculateShipping = byId('calculateShipping');
+const submit = byId('submitOrder');
+let quoteRequest = 0;
+let deliveries = [];
+let autoShipping = false;
+let quoteTimer;
+let submitting = false;
+
+function clearQuotes() {
+  clearTimeout(quoteTimer);
+  quoteRequest++;
+  submit.disabled = submitting;
+  deliveries = [];
+  shippingOptions.replaceChildren();
+  shippingStatus.textContent = '';
+  calculateShipping.disabled = false;
+  submit.textContent = 'Solicitar cotação manual';
+}
+
+function cartItems() {
+  return selected().map(item => ({id:item.id,quantity:quantities[item.id]}));
+}
 for (const uf of 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ')) {
   checkout.elements.state.append(new Option(uf,uf));
 }
@@ -66,6 +90,63 @@ async function fillAddress() {
   }
 }
 cepInput.addEventListener('input',fillAddress);
+function scheduleShipping() {
+  clearQuotes();
+  if (!autoShipping || !cartItems().length || cepInput.value.replace(/\D/g,'').length !== 8) return;
+  submit.disabled = true;
+  shippingStatus.textContent = 'Consultando os Correios…';
+  quoteTimer = setTimeout(loadShipping,300);
+}
+
+async function loadShipping() {
+  clearQuotes();
+  const request = quoteRequest;
+  const cep = cepInput.value.replace(/\D/g,'');
+  if (cep.length !== 8) {
+    shippingStatus.textContent = 'Informe um CEP com oito dígitos.';
+    cepInput.focus();
+    return;
+  }
+  calculateShipping.disabled = true;
+  submit.disabled = true;
+  shippingStatus.textContent = 'Consultando os Correios…';
+  try {
+    const {options} = await api('delivery-options',{cep,items:cartItems()});
+    if (request !== quoteRequest) return;
+    deliveries = options;
+    shippingStatus.textContent = options.length
+      ? 'Escolha uma opção com seguro ou solicite cotação manual.'
+      : 'Nenhuma opção com seguro disponível. Solicite cotação manual.';
+    const choices = options.length ? [...options,{id:'manual',method:'Cotação manual'}] : [];
+    for (const choice of choices) {
+      const label = element('label');
+      const radio = element('input');
+      radio.type = 'radio';
+      radio.name = 'shippingChoice';
+      radio.value = choice.id;
+      radio.addEventListener('change',() => {
+        submit.textContent = choice.id === 'manual' ? 'Solicitar cotação manual' : 'Continuar com este frete';
+      });
+      const name = choice.id === 'manual' ? choice.method : choice.method+' · '+money(choice.price)+' · até '+choice.days+' dias úteis';
+      label.append(radio,document.createTextNode(' '+name));
+      shippingOptions.append(label,element('br'));
+    }
+    const first = shippingOptions.querySelector('input');
+    if (first) {
+      first.checked = true;
+      submit.textContent = 'Continuar com este frete';
+    }
+  } catch(error) {
+    if (request === quoteRequest) shippingStatus.textContent = error.message;
+  } finally {
+    if (request === quoteRequest) {
+      calculateShipping.disabled = false;
+      submit.disabled = submitting;
+    }
+  }
+}
+calculateShipping.addEventListener('click',loadShipping);
+cepInput.addEventListener('input',scheduleShipping);
 cepInput.addEventListener('change',fillAddress);
 
 function selected() {
@@ -93,7 +174,7 @@ function renderCart() {
     lines.append(row);
   }
   const subtotal = items.reduce((sum,item) => sum+item.price*quantities[item.id],0);
-  byId('totals').textContent = !items.length ? 'Sua sacola está vazia.' : 'Subtotal '+money(subtotal)+(available ? ' · Frete sob consulta' : '');
+  byId('totals').textContent = !items.length ? 'Sua sacola está vazia.' : 'Subtotal '+money(subtotal)+(available ? ' · Frete calculado separadamente' : '');
   checkout.hidden = !items.length || !available;
   byId('cartStatus').textContent = items.length && !available ? 'As compras online ainda não estão disponíveis.' : '';
 }
@@ -103,6 +184,7 @@ function change(id,quantity) {
   else delete quantities[id];
   try { localStorage.setItem('amore_cart',JSON.stringify(quantities)); } catch {}
   renderCart();
+  scheduleShipping();
 }
 
 function renderProducts() {
@@ -139,22 +221,31 @@ function renderProducts() {
 byId('bag').addEventListener('click',() => {renderCart();cart.showModal();});
 checkout.addEventListener('submit',async event => {
   event.preventDefault();
-  const submit = checkout.querySelector('button');
+  if (submit.disabled) return;
+  submitting = true;
   submit.disabled = true;
   byId('cartStatus').textContent = 'Enviando sua solicitação…';
   try {
-    const result = await api('checkout',{customer:Object.fromEntries(new FormData(checkout)),items:selected().map(item => ({id:item.id,quantity:quantities[item.id]}))});
+    const customer = Object.fromEntries(new FormData(checkout));
+    const delivery = deliveries.find(option => option.id === customer.shippingChoice);
+    delete customer.shippingChoice;
+    const result = await api('checkout',{customer,items:cartItems(),delivery});
     try { localStorage.setItem('amore_last_order',result.id); } catch {}
     location.assign('/pedido?id='+encodeURIComponent(result.id));
   } catch(error) {
     byId('cartStatus').textContent = error.message;
-    submit.disabled = false;
+    submitting = false;
+    submit.disabled = calculateShipping.disabled;
+    if (error.status === 409) scheduleShipping();
   }
 });
 try {
   const result = await api('catalog');
   catalog = result.products;
   available = result.checkout;
+  autoShipping = Boolean(result.autoShipping);
+  byId('autoShipping').hidden = !autoShipping;
+  if (autoShipping) byId('shippingHelp').textContent = 'Informe seu CEP para consultar os valores e prazos de entrega.';
   if (result.demo) byId('catalogStatus').textContent = 'Prévia da coleção com preços ilustrativos.';
   renderProducts();
   renderCart();
