@@ -126,27 +126,12 @@ async function deliveryOptions(cep,items) {
     const price = Math.round(Number(option.price)*100);
     const days = Number(option.delivery_range?.max ?? option.delivery_time);
     const [parcel] = Array.isArray(option.packages) ? option.packages : [];
-    const insured = Math.round(Number(parcel?.insurance_value)*100);
-    if (option.packages?.length !== 1 || insured !== subtotal
+    // The calculator returns the insurance charge here. The declared value is sent in options.
+    const insuranceCharge = Number(parcel?.insurance_value);
+    if (option.packages?.length !== 1 || !Number.isFinite(insuranceCharge) || insuranceCharge <= 0
       || !Number.isSafeInteger(price) || price <= 0 || price > 100000
       || !Number.isInteger(days) || days < 1 || days > 60) continue;
     options.set(id,{id,method:shippingServices[id],price,days});
-  }
-  if (!options.size) {
-    console.info('SuperFrete returned no eligible quotes', JSON.stringify({
-      subtotal, quantity, services:result.map(option => ({
-        id: typeof option?.id === 'number' || /^\d{1,8}$/.test(option?.id) ? option.id : null,
-        error: typeof option?.error === 'string' ? option.error.replace(/\d{5}-?\d{3}/g,'[CEP]').slice(0,200) : Boolean(option?.error),
-        price: Number(option?.price),
-        days: Number(option?.delivery_range?.max ?? option?.delivery_time),
-        serviceFlags: option?.additional_services && Object.keys(option.additional_services),
-        packages: Array.isArray(option?.packages) ? option.packages.map(parcel => ({
-          fields: Object.keys(parcel ?? {}),
-          insurance: Number(parcel?.insurance_value) || 0,
-          insuranceReported: parcel?.insurance_value != null
-        })) : null
-      }))
-    }));
   }
   return [...options.values()].sort((a,b) => a.price - b.price);
 }
