@@ -132,6 +132,20 @@ async function deliveryOptions(cep,items) {
       || !Number.isInteger(days) || days < 1 || days > 60) continue;
     options.set(id,{id,method:shippingServices[id],price,days});
   }
+  if (!options.size) {
+    console.info('SuperFrete returned no eligible quotes', {
+      subtotal, quantity, services:result.map(option => ({
+        id: typeof option?.id === 'number' || /^\d{1,8}$/.test(option?.id) ? option.id : null,
+        error: typeof option?.error === 'string' ? option.error.replace(/\d{5}-?\d{3}/g,'[CEP]').slice(0,200) : Boolean(option?.error),
+        priceType: typeof option?.price,
+        deliveryType: typeof option?.delivery_time,
+        packages: Array.isArray(option?.packages) ? option.packages.map(parcel => ({
+          insurance: Number(parcel?.insurance_value) || 0,
+          insuranceReported: parcel?.insurance_value != null
+        })) : null
+      }))
+    });
+  }
   return [...options.values()].sort((a,b) => a.price - b.price);
 }
 
