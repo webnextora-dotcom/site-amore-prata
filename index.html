@@ -97,7 +97,7 @@
       <a href="#visite">Lojas</a></nav>
     <p>© Amore Prata</p>
   </footer>
-  <dialog id="cart" class="selection-dialog" aria-labelledby="cart-title"><div class="dialog-heading"><h2 id="cart-title">Sua sacola</h2><form method="dialog"><button class="outline" aria-label="Fechar sacola">Fechar</button></form></div><div id="lines"></div><p id="totals"></p><p><a href="/pedido">Acompanhar último pedido</a></p><form id="checkout" hidden><h3>Dados para cotar o frete</h3><p>A loja consulta os Correios e informa o valor e o prazo antes do pagamento.</p><div class="fields">
+  <dialog id="cart" class="selection-dialog" aria-labelledby="cart-title"><div class="dialog-heading"><h2 id="cart-title">Sua sacola</h2><form method="dialog"><button class="outline" aria-label="Fechar sacola">Fechar</button></form></div><div id="lines"></div><p id="totals"></p><p><a href="/pedido">Acompanhar último pedido</a></p><form id="checkout" hidden><h3>Dados de entrega</h3><p id="shippingHelp">A loja consulta os Correios e informa o valor e o prazo antes do pagamento.</p><div class="fields">
 <label class="wide">Nome completo<input name="name" autocomplete="name" maxlength="120" required></label>
 <label>E-mail<input name="email" type="email" autocomplete="email" maxlength="150" required></label>
 <label>Telefone<input name="phone" type="tel" autocomplete="tel" maxlength="24" required></label>
@@ -107,8 +107,14 @@
 <label>Número<input name="number" maxlength="20" required></label>
 <label>Complemento<input name="complement" autocomplete="address-line2" maxlength="100"></label>
 <label>Bairro<input name="district" maxlength="100" required></label>
-<label>Cidade<input name="city" autocomplete="address-level2" maxlength="100" required></label></div><p id="cepStatus" role="status"></p><button class="button" type="submit">Solicitar cotação de frete</button></form><p id="cartStatus" role="status"></p></dialog>
+<label>Cidade<input name="city" autocomplete="address-level2" maxlength="100" required></label></div><p id="cepStatus" role="status"></p><fieldset id="autoShipping" hidden>
+  <legend>Frete dos Correios</legend>
+  <button id="calculateShipping" class="outline" type="button">Calcular frete pelo CEP</button>
+  <p id="shippingStatus" role="status"></p>
+  <div id="shippingOptions"></div>
+</fieldset>
+<button id="submitOrder" class="button" type="submit">Solicitar cotação manual</button></form><p id="cartStatus" role="status"></p></dialog>
   <script src="/script.js" defer></script>
-  <script type="module" src="/loja/shop.js?v=cep"></script>
+  <script type="module" src="/loja/shop.js?v=superfrete"></script>
 </body>
 </html>
