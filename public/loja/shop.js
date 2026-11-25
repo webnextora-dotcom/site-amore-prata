@@ -7,6 +7,17 @@ let quantities = {};
 try { quantities = JSON.parse(localStorage.getItem('amore_cart')) || {}; } catch {}
 
 const cart = byId('cart');
+const productId = new URLSearchParams(location.search).get('produto');
+const productPage = byId('productPage');
+if (productId) {
+  for (const section of productPage.parentElement.children) section.hidden = section !== productPage;
+  for (const link of document.querySelectorAll('.site-header a[href^="#"], .site-footer a[href^="#"]')) {
+    link.setAttribute('href','/'+link.getAttribute('href'));
+  }
+  productPage.querySelector('.product-page-layout').append(cart);
+  cart.querySelector('form[method="dialog"]').hidden = true;
+  cart.show();
+}
 const checkout = byId('checkout');
 const shippingOptions = byId('shippingOptions');
 const shippingStatus = byId('shippingStatus');
@@ -231,11 +242,12 @@ function renderProducts() {
       image.loading = 'lazy';
     }
     card.append(image,element('p',item.category,'category'),element('h3',item.name),element('p',money(item.price)));
-    if (item.description) {
-      const details = element('details',undefined,'product-details');
-      details.append(element('summary','Ver produto'),element('p',item.description));
-      card.append(details);
-    }
+    const view = element('a','Ver produto','product-details');
+    view.href = '/?produto='+encodeURIComponent(item.id);
+    view.target = '_blank';
+    view.rel = 'noopener noreferrer';
+    view.setAttribute('aria-label','Ver '+item.name+' em nova aba');
+    card.append(view);
     card.append(button('Adicionar à sacola',() => {
       change(item.id,(quantities[item.id] || 0) + 1);
       if (!cart.open) cart.showModal();
@@ -243,7 +255,43 @@ function renderProducts() {
     products.append(card);
   }
 }
-byId('bag').addEventListener('click',() => {renderCart();cart.showModal();});
+function renderProductPage() {
+  const item = catalog.find(product => product.id === productId);
+  const title = byId('productPageTitle');
+  const message = byId('productPageStatus');
+  if (!item) {
+    message.textContent = 'Produto indisponível. Volte à coleção para ver outras peças.';
+    return;
+  }
+  title.textContent = item.name;
+  document.title = item.name+' | Amore Prata';
+  if (item.image_url) {
+    const photo = element('img',undefined,'product-preview-photo');
+    photo.src = item.image_url;
+    photo.alt = item.name;
+    title.before(photo);
+  }
+  message.remove();
+  const preview = byId('productPreview');
+  preview.append(element('p',item.category),element('p',money(item.price)));
+  if (item.description) preview.append(element('p',item.description));
+  preview.append(button('Adicionar à sacola',() => {
+    change(item.id,(quantities[item.id] || 0) + 1);
+    cart.scrollIntoView({block:'start'});
+  },'button'));
+}
+
+byId('bag').addEventListener('click',() => {
+  renderCart();
+  if (productId) cart.scrollIntoView({block:'start'});
+  else if (!cart.open) cart.showModal();
+});
+window.addEventListener('storage',event => {
+  if (event.key !== 'amore_cart') return;
+  try { quantities = JSON.parse(event.newValue) || {}; } catch { return; }
+  renderCart();
+  if (!isPickup()) scheduleShipping();
+});
 checkout.addEventListener('submit',async event => {
   event.preventDefault();
   if (submit.disabled) return;
@@ -275,8 +323,9 @@ try {
   updateReceivingMethod();
   if (!autoShipping) byId('shippingHelp').textContent = 'A cotação de frete está indisponível no momento.';
   if (result.demo) byId('catalogStatus').textContent = 'Prévia da coleção com preços ilustrativos.';
-  renderProducts();
+  if (productId) renderProductPage();
+  else renderProducts();
   renderCart();
 } catch {
-  byId('catalogStatus').textContent = 'O catálogo está indisponível no momento.';
+  byId(productId ? 'productPageStatus' : 'catalogStatus').textContent = 'O catálogo está indisponível no momento.';
 }

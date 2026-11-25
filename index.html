@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=titulos-legiveis">
+  <link rel="stylesheet" href="styles.css?v=pagina-produto">
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
@@ -46,6 +46,15 @@
       <a href="/pedido">Rastreie seu pedido</a></nav>
   </header>
   <main id="conteudo">
+    <section id="productPage" class="product-page wrap" hidden aria-labelledby="productPageTitle">
+      <p class="product-page-back"><a href="/#essencia">Voltar à coleção</a></p>
+      <div class="product-page-layout">
+        <article id="productPreview" class="product-preview">
+          <h1 id="productPageTitle">Produto</h1>
+          <p id="productPageStatus" role="status">Carregando produto…</p>
+        </article>
+      </div>
+    </section>
     <section class="hero" id="inicio">
       <div class="hero-content">
         <p class="eyebrow">Joias Amore Prata</p>
@@ -184,6 +193,6 @@
 </fieldset>
 <button id="submitOrder" class="button" type="submit" disabled>Continuar com este frete</button></form><p id="cartStatus" role="status"></p></dialog>
   <script src="/script.js?v=rolagem" defer></script>
-  <script type="module" src="/loja/shop.js?v=retirada"></script>
+  <script type="module" src="/loja/shop.js?v=pagina-produto"></script>
 </body>
 </html>
