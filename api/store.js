@@ -77,6 +77,7 @@ async function checkoutItems(body) {
   return items;
 }
 
+const freePacThreshold = 23990;
 const shippingServices = {'1':'PAC','2':'SEDEX'};
 
 function superFreteSettings() {
@@ -131,7 +132,8 @@ async function deliveryOptions(cep,items) {
     if (option.packages?.length !== 1 || !Number.isFinite(insuranceCharge) || insuranceCharge <= 0
       || !Number.isSafeInteger(price) || price <= 0 || price > 100000
       || !Number.isInteger(days) || days < 1 || days > 60) continue;
-    options.set(id,{id,method:shippingServices[id],price,days});
+    const method = shippingServices[id];
+    options.set(id,{id,method,price:method === 'PAC' && subtotal >= freePacThreshold ? 0 : price,days});
   }
   return [...options.values()].sort((a,b) => a.price - b.price);
 }
@@ -316,10 +318,11 @@ async function route(req,res,action,body) {
     if (!order.shipping_requested || order.shipping_method || order.payment_status !== 'pending') {
       fail(409,'Este pedido já foi cotado ou não aguarda cotação.');
     }
-    const total = order.total + shipping;
+    const finalShipping = method === 'PAC' && order.total >= freePacThreshold ? 0 : shipping;
+    const total = order.total + finalShipping;
     if (total > 99999999) fail(400,'O total da sacola excede o limite do pedido.');
     const [quoted] = await db('/rest/v1/orders?id=eq.'+id+'&shipping_method=is.null&payment_status=eq.pending&deleted_at=is.null',{
-      method:'PATCH',data:{shipping,shipping_days:days,shipping_method:method,total}
+      method:'PATCH',data:{shipping:finalShipping,shipping_days:days,shipping_method:method,total}
     });
     if (!quoted) fail(409,'O pedido mudou. Atualize o painel e tente novamente.');
     return {};

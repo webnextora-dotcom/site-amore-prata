@@ -127,7 +127,7 @@ async function loadShipping() {
       radio.addEventListener('change',() => {
         submit.textContent = choice.id === 'manual' ? 'Solicitar cotação manual' : 'Continuar com este frete';
       });
-      const name = choice.id === 'manual' ? choice.method : choice.method+' · '+money(choice.price)+' · até '+choice.days+' dias úteis';
+      const name = choice.id === 'manual' ? choice.method : choice.method+' · '+(choice.price === 0 ? 'Frete grátis' : money(choice.price))+' · até '+choice.days+' dias úteis';
       label.append(radio,document.createTextNode(' '+name));
       shippingOptions.append(label,element('br'));
     }
