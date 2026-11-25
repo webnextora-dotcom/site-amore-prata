@@ -8,6 +8,14 @@ const trackingHelp = byId('trackingHelp');
 const query = new URLSearchParams(location.search);
 const payment = {order_nsu:query.get('order_nsu'),transaction_nsu:query.get('transaction_nsu'),slug:query.get('slug') || query.get('invoice_slug')};
 let id = query.get('id') || payment.order_nsu;
+const confirmationStartedAt = Date.now();
+let confirmationRequested = false;
+function scheduleConfirmation() {
+  const elapsed = Date.now() - confirmationStartedAt;
+  if (payment.order_nsu && elapsed < 300000) {
+    setTimeout(() => loadOrder().catch(showError), elapsed < 30000 ? 1000 : 5000);
+  }
+}
 if (!id) {
   try { id = localStorage.getItem('amore_last_order'); } catch {}
   if (id) history.replaceState(null,'','/pedido?id='+encodeURIComponent(id));
@@ -29,10 +37,12 @@ async function loadOrder() {
     status.textContent = 'Abra o link recebido ao fazer o pedido para acompanhar o pagamento e o envio.';
     return;
   }
-  if (payment.order_nsu && payment.transaction_nsu && payment.slug) {
+  if (!confirmationRequested && payment.order_nsu && payment.transaction_nsu && payment.slug) {
+    confirmationRequested = true;
     try { await api('confirm',payment); } catch {}
   }
   const order = await api('order-status',{id});
+  details.replaceChildren();
   if (order.paid) {
     if (order.pickupStore) {
       status.textContent = {
@@ -100,6 +110,11 @@ async function loadOrder() {
     alternate.append(tracking);
     details.append(alternate);
   }
-  pay.hidden = !order.canPay;
+  pay.hidden = !order.canPay || Boolean(payment.order_nsu && Date.now() - confirmationStartedAt < 300000);
+  if (!order.paid) scheduleConfirmation();
 }
-loadOrder().catch(error => {status.textContent = error.message || 'Não foi possível consultar o pedido agora.';});
+function showError(error) {
+  status.textContent = error.message || 'Não foi possível consultar o pedido agora.';
+  scheduleConfirmation();
+}
+loadOrder().catch(showError);
