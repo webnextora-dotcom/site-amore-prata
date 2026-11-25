@@ -14,9 +14,7 @@ if (productId) {
   for (const link of document.querySelectorAll('.site-header a[href^="#"], .site-footer a[href^="#"]')) {
     link.setAttribute('href','/'+link.getAttribute('href'));
   }
-  productPage.querySelector('.product-page-layout').append(cart);
-  cart.querySelector('form[method="dialog"]').hidden = true;
-  cart.show();
+  document.body.classList.add('product-view');
 }
 const checkout = byId('checkout');
 const shippingOptions = byId('shippingOptions');
@@ -249,12 +247,19 @@ function renderProducts() {
     view.setAttribute('aria-label','Ver '+item.name+' em nova aba');
     card.append(view);
     card.append(button('Adicionar à sacola',() => {
-      change(item.id,(quantities[item.id] || 0) + 1);
-      if (!cart.open) cart.showModal();
+      addToBag(item);
     },'button add-to-cart'));
     products.append(card);
   }
 }
+function addToBag(item) {
+  const previous = quantities[item.id] || 0;
+  change(item.id,previous + 1);
+  byId('bagFeedback').textContent = previous === quantities[item.id]
+    ? 'Limite de unidades por produto atingido.'
+    : item.name+' na sacola. Quantidade: '+quantities[item.id]+'.';
+}
+
 function renderProductPage() {
   const item = catalog.find(product => product.id === productId);
   const title = byId('productPageTitle');
@@ -269,22 +274,29 @@ function renderProductPage() {
     const photo = element('img',undefined,'product-preview-photo');
     photo.src = item.image_url;
     photo.alt = item.name;
-    title.before(photo);
+    const zoom = byId('productZoom');
+    const zoomPhoto = byId('zoomPhoto');
+    const gallery = element('figure',undefined,'product-media');
+    const zoomButton = button('Zoom',() => {
+      zoomPhoto.src = item.image_url;
+      zoomPhoto.alt = item.name;
+      zoom.showModal();
+    },'photo-zoom');
+    zoomButton.setAttribute('aria-label','Ampliar foto de '+item.name);
+    gallery.append(photo,zoomButton);
+    byId('productPageLayout').prepend(gallery);
   }
   message.remove();
   const preview = byId('productPreview');
-  preview.append(element('p',item.category),element('p',money(item.price)));
-  if (item.description) preview.append(element('p',item.description));
-  preview.append(button('Adicionar à sacola',() => {
-    change(item.id,(quantities[item.id] || 0) + 1);
-    cart.scrollIntoView({block:'start'});
-  },'button'));
+  title.before(element('p',item.category,'detail-category'));
+  preview.append(element('p',money(item.price),'detail-price'));
+  if (item.description) preview.append(element('p',item.description,'detail-description'));
+  preview.append(button('Adicionar à sacola',() => addToBag(item),'button'));
 }
 
 byId('bag').addEventListener('click',() => {
   renderCart();
-  if (productId) cart.scrollIntoView({block:'start'});
-  else if (!cart.open) cart.showModal();
+  if (!cart.open) cart.showModal();
 });
 window.addEventListener('storage',event => {
   if (event.key !== 'amore_cart') return;
