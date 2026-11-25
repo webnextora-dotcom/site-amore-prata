@@ -6,6 +6,9 @@ const pay = byId('payOrder');
 const trackingSection = byId('trackingSection');
 const trackingHelp = byId('trackingHelp');
 const query = new URLSearchParams(location.search);
+const returningFromPayment = query.get('retorno') === 'pagbank';
+const dateTime = new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Fortaleza'});
+let confirmationChecks = 0;
 let id = query.get('id') || query.get('order_nsu');
 if (!id) {
   try { id = localStorage.getItem('amore_last_order'); } catch {}
@@ -29,6 +32,9 @@ async function loadOrder() {
     return;
   }
   const order = await api('order-status',{id});
+  details.replaceChildren();
+  trackingHelp.textContent = order.tracking ? 'Use o código abaixo para consultar a entrega.' :
+    'O código aparecerá aqui após a loja registrar o envio.';
   if (order.paid) {
     if (order.pickupStore) {
       status.textContent = {
@@ -47,13 +53,32 @@ async function loadOrder() {
   } else if (order.waiting) {
     status.textContent = 'Cotação solicitada. Guarde este link e volte para consultar o valor do frete.';
   } else {
-    status.textContent = order.canPay ? (order.pickupStore ? 'Confira a loja escolhida e pague para confirmar a retirada.' : 'Frete cotado. Confira o total e pague para confirmar seu pedido.') : 'Pagamento aguardando confirmação.';
+    status.textContent = returningFromPayment ? 'Aguardando a confirmação do PagBank.' :
+      order.canPay ? (order.pickupStore ? 'Confira a loja escolhida e pague para confirmar a retirada.' : 'Frete cotado. Confira o total e pague para confirmar seu pedido.') : 'Pagamento aguardando confirmação.';
   }
-  if (order.customer?.firstName) details.append(element('p','Cliente: '+order.customer.firstName));
+  const date = new Date(order.paidAt || order.createdAt || NaN);
+  const shippingStatus = order.pickupStore
+    ? {pending:'Em preparação',shipped:'Pronto para retirada',delivered:'Retirado'}[order.fulfillment]
+    : {pending:'Aguardando envio',shipped:'Enviado',delivered:'Entregue'}[order.fulfillment];
+  const summary = element('dl');
+  for (const [label,value] of [
+    ['Comprador',order.customer?.name],
+    [order.paidAt ? 'Pagamento confirmado em' : 'Pedido realizado em',Number.isFinite(date.getTime()) ? dateTime.format(date) : ''],
+    ['Pagamento',order.paid ? 'Pago' : 'Aguardando confirmação'],
+    [order.pickupStore ? 'Status da retirada' : 'Status do envio',shippingStatus],
+    ['Total',order.waiting ? '' : money(order.total)]
+  ]) {
+    if (value) summary.append(element('dt',label),element('dd',value));
+  }
+  details.append(summary);
   if (order.items?.length) {
     const items = element('ul');
     for (const item of order.items) {
-      items.append(element('li',item.quantity+' × '+item.description+' · '+money(item.price*item.quantity)));
+      const entry = element('li');
+      entry.append(element('strong',item.description));
+      if (item.specification) entry.append(element('p',item.specification));
+      entry.append(element('p',item.quantity+' × '+money(item.price)+' · Subtotal '+money(item.price*item.quantity)));
+      items.append(entry);
     }
     details.append(element('h2','Itens do pedido'),items);
   }
@@ -61,14 +86,10 @@ async function loadOrder() {
     details.append(element('p','Destino: '+order.customer.city+' – '+order.customer.state));
   }
   trackingSection.hidden = Boolean(order.pickupStore);
-  if (!order.pickupStore && !order.tracking) {
-    trackingHelp.textContent = 'O código aparecerá aqui quando a equipe registrar a etiqueta de envio. Guarde o link do pedido para voltar a consultar.';
-  }
   if (order.pickupStore) details.append(element('p','Retirada grátis · '+order.pickupStore));
   if (order.method) {
     details.append(element('p','Correios '+order.method+' · '+money(order.shipping)+' · '+order.days+' dia(s) úteis após a postagem'));
   }
-  if (!order.waiting) details.append(element('p','Total '+money(order.total)));
   if (order.tracking) {
     const tracking = element('a','Rastrear nos Correios');
     tracking.href = 'https://rastreamento.correios.com.br/app/index.php';
@@ -96,6 +117,12 @@ async function loadOrder() {
     alternate.append(tracking);
     details.append(alternate);
   }
-  pay.hidden = !order.canPay;
+  pay.hidden = returningFromPayment || !order.canPay;
+  if (returningFromPayment && !order.paid && confirmationChecks++ < 12) {
+    setTimeout(()=>loadOrder().catch(showError),2500);
+  }
 }
-loadOrder().catch(error => {status.textContent = error.message || 'Não foi possível consultar o pedido agora.';});
+function showError(error) {
+  status.textContent = error.message || 'Não foi possível consultar o pedido agora.';
+}
+loadOrder().catch(showError);

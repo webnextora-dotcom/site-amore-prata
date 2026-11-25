@@ -112,11 +112,11 @@ async function checkoutItems(body) {
   if (!Array.isArray(body.items) || !body.items.length || body.items.length > 30) fail(400,'Confira sua sacola.');
   const ids = [...new Set(body.items.map(item => item?.id))];
   if (ids.length !== body.items.length || ids.some(id => !uuid.test(id))) fail(400,'Confira sua sacola.');
-  const rows = await db('/rest/v1/products?active=eq.true&deleted_at=is.null&select=id,name,price&id=in.(' + ids.join(',') + ')');
+  const rows = await db('/rest/v1/products?active=eq.true&deleted_at=is.null&select=id,name,description,price&id=in.(' + ids.join(',') + ')');
   const items = body.items.map(({id,quantity}) => {
     const product = rows.find(row => row.id === id);
     if (!product || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) fail(400,'Confira a disponibilidade e as quantidades da sacola.');
-    return {description:product.name,price:product.price,quantity};
+    return {description:product.name,specification:product.description || '',price:product.price,quantity};
   });
   return items;
 }
@@ -233,7 +233,7 @@ async function requestShipping(body) {
 
 async function shippingOrder(id) {
   if (typeof id !== 'string' || !uuid.test(id)) fail(400,'Pedido inválido.');
-  const [order] = await db('/rest/v1/orders?id=eq.'+id+'&deleted_at=is.null&select=id,customer,shipping_requested,shipping_method,shipping_days,shipping,total,items,payment_status,fulfillment,tracking_code,checkout_url,checkout_expires_at,checkout_lock_until');
+  const [order] = await db('/rest/v1/orders?id=eq.'+id+'&deleted_at=is.null&select=id,customer,shipping_requested,shipping_method,shipping_days,shipping,total,items,payment_status,fulfillment,tracking_code,checkout_url,checkout_expires_at,checkout_lock_until,created_at,paid_at');
   if (!order) fail(404,'Pedido não encontrado.');
   return order;
 }
@@ -261,7 +261,8 @@ async function startPayment(id) {
   let url;
   try {
     result = await pay('checkouts',{
-      reference_id:id,redirect_url:origin+'/pedido?id='+id,return_url:origin+'/pedido?id='+id,
+      reference_id:id,redirect_url:origin+'/pedido?id='+id+'&retorno=pagbank',return_url:origin+'/pedido?id='+id,
+      redirect_waiting_time:5,
       expiration_date:expires,payment_notification_urls:[origin+'/api/webhook'],
       items:order.items.map(item => ({name:item.description.slice(0,100),unit_amount:item.price,quantity:item.quantity})),
       additional_amount:order.shipping || 0,
@@ -317,9 +318,9 @@ async function route(req,res,action,body) {
     const order = await shippingOrder(body.id);
     const customer = order.customer ?? {};
     return {
-      items:Array.isArray(order.items) ? order.items.map(({description,quantity,price}) => ({description,quantity,price})) : [],
+      items:Array.isArray(order.items) ? order.items.map(({description,specification,quantity,price}) => ({description,specification,quantity,price})) : [],
       customer:{
-        firstName:clean(customer.name,120).split(/\s+/)[0],
+        name:clean(customer.name,120),
         city:clean(customer.city,100),
         state:clean(customer.state,2)
       },
@@ -327,7 +328,7 @@ async function route(req,res,action,body) {
       canPay:checkoutReady() && (pickupStores.has(order.customer?.pickupStore) || (order.shipping_requested && Boolean(order.shipping_method))) && order.payment_status === 'pending',
       pickupStore:pickupStores.has(order.customer?.pickupStore) ? order.customer.pickupStore : null,
       method:order.shipping_method,days:order.shipping_days,shipping:order.shipping,
-      total:order.total,paid:order.payment_status === 'paid',
+      total:order.total,paid:order.payment_status === 'paid',createdAt:order.created_at,paidAt:order.paid_at,
       fulfillment:order.fulfillment,tracking:order.tracking_code
     };
   }
