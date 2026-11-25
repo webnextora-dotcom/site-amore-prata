@@ -252,10 +252,18 @@ h2 em { color: var(--rose-deep); }
   .ticker-group[aria-hidden] { display: none; }
 }
 
-.footer-social-link {
+.site-footer .footer-social-link {
   display: inline-flex;
   gap: .4rem;
   min-height: 2.75rem;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: var(--cream);
+}
+.site-footer .footer-social-link:hover,
+.site-footer .footer-social-link:focus-visible {
+  background: var(--cream);
+  color: var(--ink);
 }
 .footer-social-link svg { width: 1.2rem; height: 1.2rem; flex: none; }
 .footer-social-link:focus-visible { outline: 2px solid var(--cream); outline-offset: 3px; }
