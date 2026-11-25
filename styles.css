@@ -267,3 +267,25 @@ h2 em { color: var(--rose-deep); }
 }
 .footer-social-link svg { width: 1.2rem; height: 1.2rem; flex: none; }
 .footer-social-link:focus-visible { outline: 2px solid var(--cream); outline-offset: 3px; }
+
+.site-header nav a,
+.site-header .menu-toggle {
+  padding: .38rem .65rem;
+  border: 1px solid #673653;
+  border-radius: .35rem;
+  background: var(--cream);
+  color: #53263f;
+  font-weight: 700;
+  text-decoration: none;
+}
+.site-header nav a:hover,
+.site-header .menu-toggle:hover {
+  background: #673653;
+  color: #fff;
+  text-decoration: none;
+}
+.site-header nav a:focus-visible,
+.site-header .menu-toggle:focus-visible {
+  outline: 2px solid #673653;
+  outline-offset: 3px;
+}
