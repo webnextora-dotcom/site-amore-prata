@@ -337,3 +337,8 @@ h2 em { color: var(--rose-deep); }
 #activeCollection { margin-inline-start: .4rem; font-size: .85rem; font-weight: 500; }
 #filters .outline { border-color: transparent; text-align: start; }
 #filters .outline[aria-pressed="true"] { border-color: #673653; }
+
+.gift-copy h2,
+.visit-intro h2 { color: #352a29; }
+.gift-copy h2 em,
+.visit-intro h2 em { color: #734344; }
