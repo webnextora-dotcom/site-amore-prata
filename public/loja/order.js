@@ -24,7 +24,7 @@ pay.addEventListener('click',async () => {
 
 async function loadOrder() {
   if (!id) {
-    status.textContent = 'Abra o link do seu pedido para acompanhar o frete e o pagamento.';
+    status.textContent = 'Abra o link recebido ao fazer o pedido para acompanhar o pagamento e o envio.';
     return;
   }
   if (payment.order_nsu && payment.transaction_nsu && payment.slug) {
@@ -54,7 +54,27 @@ async function loadOrder() {
     tracking.href = 'https://rastreamento.correios.com.br/app/index.php';
     tracking.target = '_blank';
     tracking.rel = 'noopener noreferrer';
-    details.append(element('p','Código de rastreamento: '+order.tracking),tracking);
+    const code = element('p','Código de rastreamento: '+order.tracking);
+    if (navigator.clipboard?.writeText) {
+      const copy = element('button','Copiar código','button');
+      copy.type = 'button';
+      const feedback = element('span');
+      feedback.setAttribute('role','status');
+      copy.addEventListener('click',async () => {
+        try {
+          await navigator.clipboard.writeText(order.tracking);
+          feedback.textContent = ' Código copiado.';
+        } catch {
+          feedback.textContent = ' Selecione e copie o código acima.';
+        }
+      });
+      details.append(code,copy,feedback);
+    } else {
+      details.append(code);
+    }
+    const alternate = element('p');
+    alternate.append(tracking);
+    details.append(alternate);
   }
   pay.hidden = !order.canPay;
 }
