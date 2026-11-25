@@ -6,8 +6,7 @@ const pay = byId('payOrder');
 const trackingSection = byId('trackingSection');
 const trackingHelp = byId('trackingHelp');
 const query = new URLSearchParams(location.search);
-const payment = {order_nsu:query.get('order_nsu'),transaction_nsu:query.get('transaction_nsu'),slug:query.get('slug') || query.get('invoice_slug')};
-let id = query.get('id') || payment.order_nsu;
+let id = query.get('id') || query.get('order_nsu');
 if (!id) {
   try { id = localStorage.getItem('amore_last_order'); } catch {}
   if (id) history.replaceState(null,'','/pedido?id='+encodeURIComponent(id));
@@ -28,9 +27,6 @@ async function loadOrder() {
   if (!id) {
     status.textContent = 'Abra o link recebido ao fazer o pedido para acompanhar o pagamento e o envio.';
     return;
-  }
-  if (payment.order_nsu && payment.transaction_nsu && payment.slug) {
-    try { await api('confirm',payment); } catch {}
   }
   const order = await api('order-status',{id});
   if (order.paid) {

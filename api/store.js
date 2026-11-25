@@ -6,10 +6,11 @@ const env = process.env;
 const supabaseSecret = () => env.SUPABASE_SECRET_KEY?.trim();
 const supabasePublic = () => env.SUPABASE_PUBLISHABLE_KEY?.trim();
 const configured = () => Boolean(env.SUPABASE_URL && env.SUPABASE_PUBLISHABLE_KEY && env.SUPABASE_SECRET_KEY);
-const infinitePayHandle = () => env.INFINITEPAY_HANDLE?.trim().replace(/^\$/, '');
-const infinitePayKey = () => env.INFINITEPAY_API_KEY?.trim();
+const pagBankToken = () => env.PAGBANK_TOKEN?.trim();
+const pagBankHosts = {sandbox:'sandbox.api.pagseguro.com',production:'api.pagseguro.com'};
+const pagBankHost = () => Object.hasOwn(pagBankHosts, env.PAGBANK_ENV) ? pagBankHosts[env.PAGBANK_ENV] : undefined;
 const checkoutReady = () => configured()
-  && Boolean(env.SITE_URL && infinitePayHandle() && infinitePayKey());
+  && Boolean(env.SITE_URL && pagBankHost() && pagBankToken());
 const demo = [
   ['anel','Anel solitário','Anéis',12900],
   ['brinco','Brinco cravejado','Brincos',9900],
@@ -76,11 +77,20 @@ async function listProducts({publishedOnly = false} = {}) {
 }
 
 function pay(path, data) {
-  return upstream('https://api.checkout.infinitepay.io/' + path, {
-    method:'POST',
-    headers:{'Content-Type':'application/json', 'X-Api-Key':infinitePayKey()},
-    body:JSON.stringify({handle:infinitePayHandle(), ...data})
-  }, 'A InfinitePay não respondeu. Tente novamente em instantes.');
+  return upstream('https://' + pagBankHost() + '/' + path, {
+    method:data ? 'POST' : 'GET',
+    headers:{'Content-Type':'application/json', Authorization:'Bearer ' + pagBankToken()},
+    body:data ? JSON.stringify(data) : undefined
+  }, 'O PagBank não respondeu. Tente novamente em instantes.');
+}
+
+function pagBankLink(value) {
+  try {
+    const url = new URL(value);
+    const hosts = env.PAGBANK_ENV === 'production' ? ['pagamento.pagbank.com.br','pagamento.pagseguro.uol.com.br'] :
+      ['pagamento.sandbox.pagbank.com.br','sandbox.pagamento.pagbank.com.br','sandbox.pagamento.pagseguro.uol.com.br','qa.pagamento.pagseguro.uol.com.br'];
+    if (url.protocol === 'https:' && hosts.includes(url.host) && !url.username && !url.password) return url.href;
+  } catch {}
 }
 
 async function admin(req) {
@@ -236,7 +246,8 @@ async function startPayment(id) {
     fail(409,'Este pedido ainda não está disponível para pagamento.');
   }
   const now = new Date();
-  if (order.checkout_url && Date.parse(order.checkout_expires_at) > now.getTime()) return {url:order.checkout_url};
+  const existingLink = pagBankLink(order.checkout_url);
+  if (existingLink && Date.parse(order.checkout_expires_at) > now.getTime()) return {url:existingLink};
   const lock = new Date(now.getTime()+45000).toISOString();
   const row = '/rest/v1/orders?id=eq.'+id;
   const previousExpiry = order.checkout_expires_at ? 'eq.'+encodeURIComponent(order.checkout_expires_at) : 'is.null';
@@ -246,35 +257,49 @@ async function startPayment(id) {
   if (!claimed) fail(409,'O pagamento foi atualizado. Aguarde alguns instantes e tente novamente.');
   const expires = new Date(now.getTime()+3600000).toISOString();
   const origin = new URL(env.SITE_URL).origin;
-  const result = await pay('links',{
-    order_nsu:id,redirect_url:origin+'/pedido',webhook_url:origin+'/api/webhook',
-    items:order.shipping ? [...order.items,{description:'Frete Correios',price:order.shipping,quantity:1}] : order.items,
-    options:{single_payment:true,valid_until:expires,payment_methods_enabled:['credit_card','pix'],...(pickup && {require_delivery_address:false})}
-  });
+  let result;
   let url;
-  try { url = new URL(result.url); } catch { fail(502,'A InfinitePay não retornou um link válido.'); }
-  if (url.protocol !== 'https:' || !/(^|\.)infinitepay\.io$/.test(url.hostname)) fail(502,'A InfinitePay não retornou um link válido.');
+  try {
+    result = await pay('checkouts',{
+      reference_id:id,redirect_url:origin+'/pedido?id='+id,return_url:origin+'/pedido?id='+id,
+      expiration_date:expires,payment_notification_urls:[origin+'/api/webhook'],
+      items:order.items.map(item => ({name:item.description.slice(0,100),unit_amount:item.price,quantity:item.quantity})),
+      additional_amount:order.shipping || 0,
+      payment_methods:[{type:'CREDIT_CARD'},{type:'PIX'}]
+    });
+    url = pagBankLink(result?.links?.find(link => link.rel === 'PAY')?.href);
+    if (!url || !/^CHEC_[\da-f-]+$/i.test(result.id ?? '')) fail(502,'O PagBank não retornou um checkout válido.');
+  } catch (error) {
+    await db(row+'&checkout_lock_until=eq.'+encodeURIComponent(lock),{
+      method:'PATCH',data:{checkout_lock_until:null}
+    }).catch(() => {});
+    throw error;
+  }
   const [saved] = await db(row+'&checkout_lock_until=eq.'+encodeURIComponent(lock)+'&deleted_at=is.null&payment_status=eq.pending',{
-    method:'PATCH',data:{checkout_url:url.href,checkout_expires_at:expires,checkout_lock_until:null}
+    method:'PATCH',data:{checkout_url:url,checkout_expires_at:expires,checkout_lock_until:null,invoice_slug:result.id}
   });
   if (!saved) fail(409,'O pedido mudou. Atualize a página.');
-  return {url:url.href};
+  return {url};
 }
 
 async function confirm(body) {
-  const id = body.order_nsu;
-  const tx = clean(body.transaction_nsu,150);
-  const slug = clean(body.slug || body.invoice_slug,150);
-  if (!uuid.test(id) || !tx || !slug) fail(400,'Dados do pagamento inválidos.');
+  const id = body.reference_id;
+  const providerOrder = body.id;
+  if (!uuid.test(id) || !/^ORDE_[\da-f-]+$/i.test(providerOrder ?? '')) fail(400,'Dados do pagamento inválidos.');
   if (!checkoutReady()) fail(503,'Checkout indisponível.');
-  const [order] = await db('/rest/v1/orders?id=eq.'+id+'&select=id,total,payment_status,transaction_nsu,invoice_slug,shipping_requested,shipping_method');
+  const [order] = await db('/rest/v1/orders?id=eq.'+id+'&deleted_at=is.null&select=id,total,payment_status,checkout_url,invoice_slug,shipping_requested,shipping_method');
   if (!order) fail(404,'Pedido não encontrado.');
-  if (order.shipping_requested && !order.shipping_method) return {paid:false};
-  if (order.payment_status === 'paid') return {paid:order.transaction_nsu === tx && order.invoice_slug === slug};
-  const result = await pay('payment_check',{order_nsu:id,transaction_nsu:tx,slug});
-  if (result.success !== true || result.paid !== true || result.amount !== order.total) return {paid:false};
-  await db('/rest/v1/orders?id=eq.'+id+'&payment_status=eq.pending',{method:'PATCH',data:{payment_status:'paid',transaction_nsu:tx,invoice_slug:slug,paid_at:new Date().toISOString()}});
-  return {paid:true};
+  if (order.payment_status === 'paid') return {paid:true};
+  if (!pagBankLink(order.checkout_url) || !order.invoice_slug || (order.shipping_requested && !order.shipping_method)) return {paid:false};
+  const result = await pay('orders/'+providerOrder);
+  if (result.id !== providerOrder || result.reference_id !== id) return {paid:false};
+  const charge = result.charges?.find(item => /^CHAR_[\da-f-]+$/i.test(item.id ?? '') && item.status === 'PAID'
+    && item.amount?.currency === 'BRL' && item.amount.value === order.total && item.amount.summary?.paid === order.total);
+  if (!charge) return {paid:false};
+  const [updated] = await db('/rest/v1/orders?id=eq.'+id+'&deleted_at=is.null&payment_status=eq.pending&total=eq.'+order.total,{
+    method:'PATCH',data:{payment_status:'paid',transaction_nsu:charge.id,paid_at:new Date().toISOString()}
+  });
+  return {paid:Boolean(updated)};
 }
 
 async function route(req,res,action,body) {
@@ -299,7 +324,7 @@ async function route(req,res,action,body) {
         state:clean(customer.state,2)
       },
       waiting:order.shipping_requested && !order.shipping_method,
-      canPay:(pickupStores.has(order.customer?.pickupStore) || (order.shipping_requested && Boolean(order.shipping_method))) && order.payment_status === 'pending',
+      canPay:checkoutReady() && (pickupStores.has(order.customer?.pickupStore) || (order.shipping_requested && Boolean(order.shipping_method))) && order.payment_status === 'pending',
       pickupStore:pickupStores.has(order.customer?.pickupStore) ? order.customer.pickupStore : null,
       method:order.shipping_method,days:order.shipping_days,shipping:order.shipping,
       total:order.total,paid:order.payment_status === 'paid',
@@ -307,11 +332,7 @@ async function route(req,res,action,body) {
     };
   }
   if (action === 'order-payment' && req.method === 'POST') return startPayment(body.id);
-  if (['webhook','confirm'].includes(action) && req.method === 'POST') {
-    const result = await confirm(body);
-    if (action === 'webhook' && !result.paid) fail(400,'Pagamento não confirmado.');
-    return result;
-  }
+  if (action === 'webhook' && req.method === 'POST') return confirm(body);
   if (action === 'logout' && req.method === 'POST') {
     res.setHeader('Set-Cookie','amore_session=; HttpOnly; Path=/api; SameSite=Strict; Max-Age=0; Secure');
     return {};
