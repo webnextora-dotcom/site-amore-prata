@@ -292,22 +292,9 @@ async function confirm(body) {
   if (!order) fail(404,'Pedido não encontrado.');
   if (order.payment_status === 'paid') return {paid:true};
   if (!pagBankLink(order.checkout_url) || !order.invoice_slug || (order.shipping_requested && !order.shipping_method)) return {paid:false};
-  let charges;
-  try {
-    const result = await pay('orders/'+providerOrder);
-    if (result.id !== providerOrder || result.reference_id !== id) return {paid:false};
-    charges = result.charges ?? [];
-  } catch (error) {
-    if (error.status !== 502 || !/^CHEC_[0-9a-f-]+$/i.test(order.invoice_slug)) throw error;
-    const checkout = await pay('checkouts/'+order.invoice_slug);
-    if (checkout.id !== order.invoice_slug || checkout.reference_id !== id) return {paid:false};
-    const related = [...(checkout.orders ?? []), ...(checkout.payments ?? [])].find(row => row.id === providerOrder);
-    charges = related?.charges ?? [];
-    if (!charges.length) console.info('PagBank checkout payment shape', {
-      keys:Object.keys(checkout), paymentKeys:Object.keys(checkout.payments?.[0] ?? checkout.orders?.[0] ?? {})
-    });
-  }
-  const charge = charges.find(item => /^CHAR_[0-9a-f-]+$/i.test(item.id ?? '') && item.status === 'PAID'
+  const result = await pay('orders/'+providerOrder);
+  if (result.id !== providerOrder || result.reference_id !== id) return {paid:false};
+  const charge = result.charges?.find(item => /^CHAR_[\da-f-]+$/i.test(item.id ?? '') && item.status === 'PAID'
     && item.amount?.currency === 'BRL' && item.amount.value === order.total && item.amount.summary?.paid === order.total);
   if (!charge) return {paid:false};
   const [updated] = await db('/rest/v1/orders?id=eq.'+id+'&deleted_at=is.null&payment_status=eq.pending&total=eq.'+order.total,{
