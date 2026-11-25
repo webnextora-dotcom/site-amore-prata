@@ -256,7 +256,14 @@ async function route(req,res,action,body) {
   if (action === 'order-status' && req.method === 'POST') {
     if (!configured()) fail(503,'Pedidos indisponíveis.');
     const order = await shippingOrder(body.id);
+    const customer = order.customer ?? {};
     return {
+      items:Array.isArray(order.items) ? order.items.map(({description,quantity,price}) => ({description,quantity,price})) : [],
+      customer:{
+        firstName:clean(customer.name,120).split(/\s+/)[0],
+        city:clean(customer.city,100),
+        state:clean(customer.state,2)
+      },
       waiting:order.shipping_requested && !order.shipping_method,
       canPay:(pickupStores.has(order.customer?.pickupStore) || (order.shipping_requested && Boolean(order.shipping_method))) && order.payment_status === 'pending',
       pickupStore:pickupStores.has(order.customer?.pickupStore) ? order.customer.pickupStore : null,

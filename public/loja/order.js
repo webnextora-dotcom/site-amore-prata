@@ -3,6 +3,8 @@ import {api,byId,element,money} from './shared.js';
 const status = byId('confirmation');
 const details = byId('orderDetails');
 const pay = byId('payOrder');
+const trackingSection = byId('trackingSection');
+const trackingHelp = byId('trackingHelp');
 const query = new URLSearchParams(location.search);
 const payment = {order_nsu:query.get('order_nsu'),transaction_nsu:query.get('transaction_nsu'),slug:query.get('slug') || query.get('invoice_slug')};
 let id = query.get('id') || payment.order_nsu;
@@ -50,6 +52,21 @@ async function loadOrder() {
     status.textContent = 'Cotação solicitada. Guarde este link e volte para consultar o valor do frete.';
   } else {
     status.textContent = order.canPay ? (order.pickupStore ? 'Confira a loja escolhida e pague para confirmar a retirada.' : 'Frete cotado. Confira o total e pague para confirmar seu pedido.') : 'Pagamento aguardando confirmação.';
+  }
+  if (order.customer?.firstName) details.append(element('p','Cliente: '+order.customer.firstName));
+  if (order.items?.length) {
+    const items = element('ul');
+    for (const item of order.items) {
+      items.append(element('li',item.quantity+' × '+item.description+' · '+money(item.price*item.quantity)));
+    }
+    details.append(element('h2','Itens do pedido'),items);
+  }
+  if (order.customer?.city && order.customer?.state) {
+    details.append(element('p','Destino: '+order.customer.city+' – '+order.customer.state));
+  }
+  trackingSection.hidden = Boolean(order.pickupStore);
+  if (!order.pickupStore && !order.tracking) {
+    trackingHelp.textContent = 'O código aparecerá aqui quando a equipe registrar a etiqueta de envio. Guarde o link do pedido para voltar a consultar.';
   }
   if (order.pickupStore) details.append(element('p','Retirada grátis · '+order.pickupStore));
   if (order.method) {
