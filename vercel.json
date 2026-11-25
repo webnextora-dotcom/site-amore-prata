@@ -2,6 +2,8 @@
   "buildCommand": "node build.mjs",
   "outputDirectory": "public",
   "rewrites": [
+    {"source": "/conectar", "destination": "/api/connect?stage=invite"},
+    {"source": "/conectar/callback", "destination": "/api/connect?stage=callback"},
     {"source": "/api/delivery-options", "destination": "/api/store?route=delivery-options"},
     {"source": "/api/order-status", "destination": "/api/store?route=order-status"},
     {"source": "/api/order-payment", "destination": "/api/store?route=order-payment"},
