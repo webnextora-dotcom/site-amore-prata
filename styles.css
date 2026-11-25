@@ -244,27 +244,10 @@ h2 em { color: var(--rose-deep); }
 .benefits .ticker-track { animation-duration: 46s; }
 .benefits .ticker-group { align-items: flex-start; --ticker-gap: 3.5rem; }
 .benefits .ticker-group > div { width: clamp(12rem, 24vw, 16rem); }
-.ticker:hover .ticker-track, .ticker:focus-within .ticker-track,
-.ticker[data-paused] .ticker-track { animation-play-state: paused; }
-.ticker-toggle {
-  position: absolute;
-  z-index: 1;
-  inset: 50% .35rem auto auto;
-  transform: translateY(-50%);
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  border: 1px solid currentColor;
-  border-radius: .3rem;
-  background: var(--cream);
-  color: var(--ink);
-  cursor: pointer;
-}
-.announcement .ticker-toggle { width: 1.65rem; height: 1.65rem; }
 @keyframes ticker-slide { to { transform: translateX(-50%); } }
 @media (prefers-reduced-motion: reduce) {
   .ticker-track { display: block; width: auto; animation: none; }
   .ticker-group { min-width: 0; flex-wrap: wrap; justify-content: center; gap: .65rem 1.25rem; padding-inline: 1rem; }
   .benefits .ticker-group { row-gap: 1.5rem; }
-  .ticker-group[aria-hidden], .ticker-toggle { display: none; }
+  .ticker-group[aria-hidden] { display: none; }
 }

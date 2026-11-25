@@ -18,15 +18,3 @@ document.addEventListener('keydown', (event) => {
     menuButton.focus();
   }
 });
-
-document.querySelectorAll('.ticker-toggle').forEach(button => {
-  const ticker = button.closest('.ticker');
-  button.hidden = false;
-  button.addEventListener('click', () => {
-    const paused = ticker.toggleAttribute('data-paused');
-    const label = paused ? 'Retomar rolagem' : 'Pausar rolagem';
-    button.setAttribute('aria-label', label);
-    button.title = label;
-    button.firstElementChild.textContent = paused ? '▶' : 'Ⅱ';
-  });
-});
