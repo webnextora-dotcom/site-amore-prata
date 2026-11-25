@@ -4,6 +4,8 @@ create table public.products (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   category text not null check (category in ('Anéis','Brincos','Colares','Pulseiras','Conjuntos')),
+  sku text check (sku is null or (char_length(sku) between 1 and 48)),
+  stock_quantity integer check (stock_quantity >= 0),
   description text not null default '',
   image_url text not null default '',
   price integer not null check (price between 1 and 99999999),

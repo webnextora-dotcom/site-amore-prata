@@ -164,6 +164,8 @@ function edit(product) {
   byId('editorStatus').textContent = '';
   if (product) {
     for (const field of ['id','name','category','description']) fields[field].value = product[field];
+    fields.sku.value = product.sku ?? '';
+    fields.stock_quantity.value = product.stock_quantity ?? '';
     fields.price.value = (product.price/100).toFixed(2);
     fields.active.checked = product.active;
   }
@@ -187,6 +189,10 @@ function renderProducts() {
     const row = element('article',undefined,'panel toolbar');
     const info = element('div');
     info.append(element('strong',product.name),element('div',product.category+' · '+money(product.price)+' · '+(product.active?'Publicado':'Oculto')));
+    const inventory = [];
+    if (product.sku) inventory.push('Código: '+product.sku);
+    if (product.stock_quantity != null) inventory.push('Estoque: '+product.stock_quantity);
+    if (inventory.length) info.append(element('div',inventory.join(' · ')));
     const actions = element('div',undefined,'admin-tabs');
     const editProduct = button('Editar',() => edit(product));
     const remove = button('Excluir produto',async () => {
@@ -286,6 +292,12 @@ productForm.addEventListener('submit',async event => {
   delete data.image;
   data.active = productForm.elements.active.checked;
   data.price = Math.round(Number(data.price)*100);
+  const previous = products.find(product => product.id === data.id);
+  data.sku = data.sku.trim();
+  if (!data.sku && previous?.sku == null) delete data.sku;
+  else if (!data.sku) data.sku = null;
+  if (data.stock_quantity === '' && previous?.stock_quantity == null) delete data.stock_quantity;
+  else data.stock_quantity = data.stock_quantity === '' ? null : Number(data.stock_quantity);
   const message = byId('editorStatus');
   message.textContent = '';
   formBusy(productForm,true);

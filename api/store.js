@@ -386,6 +386,30 @@ async function route(req,res,action,body) {
   if (action === 'product' && req.method === 'POST') {
     const data = {name:clean(body.name,120),category:body.category,description:clean(body.description,2000),price:body.price,active:body.active === true};
     if (!data.name || !categories.includes(data.category) || !Number.isInteger(data.price) || data.price < 1 || data.price > 99999999 || (body.id && !uuid.test(body.id))) fail(400,'Confira o nome, a categoria e o preço.');
+    if (body.sku !== undefined) {
+      if (body.sku !== null && (typeof body.sku !== 'string' || !body.sku.trim() || body.sku.trim().length > 48)) {
+        fail(400,'Informe um código de produto com até 48 caracteres.');
+      }
+      data.sku = body.sku?.trim().toUpperCase() ?? null;
+    }
+    if (body.stock_quantity !== undefined) {
+      if (body.stock_quantity !== null && (!Number.isInteger(body.stock_quantity) || body.stock_quantity < 0 || body.stock_quantity > 2147483647)) {
+        fail(400,'Informe uma quantidade em estoque inteira e não negativa.');
+      }
+      data.stock_quantity = body.stock_quantity;
+    }
+    if ('sku' in data || 'stock_quantity' in data) {
+      try {
+        await db('/rest/v1/products?select=sku,stock_quantity&limit=0');
+      } catch(error) {
+        if (error.status !== 502) throw error;
+        fail(503,'Os campos de estoque e código ainda precisam ser habilitados no banco de dados.');
+      }
+    }
+    if (data.sku) {
+      const matches = await db('/rest/v1/products?deleted_at=is.null&select=id&sku=eq.'+encodeURIComponent(data.sku.toUpperCase()));
+      if (matches.some(product => product.id !== body.id)) fail(409,'Já existe um produto com esse código.');
+    }
     if (body.image) {
       const matches = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(body.image);
       const file = matches && Buffer.from(matches[2],'base64');
