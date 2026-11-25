@@ -203,7 +203,11 @@ function renderProducts() {
       image.loading = 'lazy';
     }
     card.append(image,element('p',item.category,'category'),element('h3',item.name),element('p',money(item.price)));
-    if (item.description) card.append(element('p',item.description));
+    if (item.description) {
+      const details = element('details',undefined,'product-details');
+      details.append(element('summary','Ver produto'),element('p',item.description));
+      card.append(details);
+    }
     card.append(button('Adicionar à sacola',() => {
       change(item.id,(quantities[item.id] || 0) + 1);
       if (!cart.open) cart.showModal();
