@@ -207,7 +207,7 @@ function renderProducts() {
     card.append(button('Adicionar à sacola',() => {
       change(item.id,(quantities[item.id] || 0) + 1);
       if (!cart.open) cart.showModal();
-    }));
+    },'button add-to-cart'));
     products.append(card);
   }
 }

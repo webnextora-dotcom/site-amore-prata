@@ -268,24 +268,27 @@ h2 em { color: var(--rose-deep); }
 .footer-social-link svg { width: 1.2rem; height: 1.2rem; flex: none; }
 .footer-social-link:focus-visible { outline: 2px solid var(--cream); outline-offset: 3px; }
 
-.site-header nav a,
-.site-header .menu-toggle {
-  padding: .38rem .65rem;
-  border: 1px solid #673653;
-  border-radius: .35rem;
-  background: var(--cream);
-  color: #53263f;
-  font-weight: 700;
+.site-header nav a { color: var(--ink); }
+.location-card h3, .benefits h3, .catalog .section-heading h2 { color: var(--ink); }
+.benefits, .catalog { background: var(--cream); }
+.product { color: var(--ink); }
+.location-card .whatsapp-link {
+  align-self: flex-start;
+  padding: .35rem .65rem;
+  border: 1px solid currentColor;
+  border-radius: .3rem;
+  color: #673653;
   text-decoration: none;
 }
-.site-header nav a:hover,
-.site-header .menu-toggle:hover {
+.location-card .whatsapp-link:hover { text-decoration: underline; }
+#filters .outline { border-color: #673653; color: #53263f; }
+#filters .outline[aria-pressed="true"] { font-weight: 700; }
+.product .add-to-cart {
+  width: 100%;
+  margin-top: .65rem;
+  border-color: #673653;
+  border-radius: .3rem;
   background: #673653;
-  color: #fff;
-  text-decoration: none;
 }
-.site-header nav a:focus-visible,
-.site-header .menu-toggle:focus-visible {
-  outline: 2px solid #673653;
-  outline-offset: 3px;
-}
+.product .add-to-cart:hover { background: #53263f; }
+.product .add-to-cart:focus-visible { outline-color: #673653; }
