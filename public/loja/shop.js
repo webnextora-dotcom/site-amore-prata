@@ -10,7 +10,10 @@ const cart = byId('cart');
 const productId = new URLSearchParams(location.search).get('produto');
 const productPage = byId('productPage');
 if (productId) {
-  for (const section of productPage.parentElement.children) section.hidden = section !== productPage;
+  productPage.hidden = false;
+  for (const section of productPage.parentElement.children) {
+    if (section !== productPage) section.hidden = true;
+  }
   for (const link of document.querySelectorAll('.site-header a[href^="#"], .site-footer a[href^="#"]')) {
     link.setAttribute('href','/'+link.getAttribute('href'));
   }
@@ -274,19 +277,24 @@ function renderProductPage() {
     const photo = element('img',undefined,'product-preview-photo');
     photo.src = item.image_url;
     photo.alt = item.name;
-    const zoom = byId('productZoom');
-    const zoomPhoto = byId('zoomPhoto');
     const gallery = element('figure',undefined,'product-media');
     const zoomButton = button('Zoom',() => {
+      const zoom = byId('productZoomTemplate').content.firstElementChild.cloneNode(true);
+      const zoomPhoto = zoom.querySelector('img');
       zoomPhoto.src = item.image_url;
       zoomPhoto.alt = item.name;
+      zoom.addEventListener('close',() => {
+        zoom.remove();
+        zoomButton.focus();
+      },{once:true});
+      document.body.append(zoom);
       zoom.showModal();
     },'photo-zoom');
     zoomButton.setAttribute('aria-label','Ampliar foto de '+item.name);
     gallery.append(photo,zoomButton);
     byId('productPageLayout').prepend(gallery);
   }
-  message.remove();
+  message.hidden = true;
   const preview = byId('productPreview');
   title.before(element('p',item.category,'detail-category'));
   preview.append(element('p',money(item.price),'detail-price'));
@@ -339,5 +347,7 @@ try {
   else renderProducts();
   renderCart();
 } catch {
-  byId(productId ? 'productPageStatus' : 'catalogStatus').textContent = 'O catálogo está indisponível no momento.';
+  const message = byId(productId ? 'productPageStatus' : 'catalogStatus');
+  message.hidden = false;
+  message.textContent = 'O catálogo está indisponível no momento.';
 }

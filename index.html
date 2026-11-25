@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=zoom-produto">
+  <link rel="stylesheet" href="styles.css?v=visualizacao-produto">
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
@@ -169,10 +169,12 @@
     <p>© Amore Prata</p>
   </footer>
   <p id="bagFeedback" class="cart-feedback" role="status"></p>
-  <dialog id="productZoom" class="product-zoom" aria-label="Foto ampliada do produto">
+  <template id="productZoomTemplate">
+  <dialog class="product-zoom" aria-label="Foto ampliada do produto">
     <form method="dialog"><button class="outline" aria-label="Fechar foto ampliada">Fechar</button></form>
-    <img id="zoomPhoto" alt="">
+    <img alt="">
   </dialog>
+  </template>
   <dialog id="cart" class="selection-dialog" aria-labelledby="cart-title"><div class="dialog-heading"><h2 id="cart-title">Sua sacola</h2><form method="dialog"><button class="outline" aria-label="Fechar sacola">Fechar</button></form></div><div id="lines"></div><p id="totals"></p><p><a href="/pedido">Acompanhar último pedido</a></p><form id="checkout" hidden><h3>Como prefere receber?</h3>
 <div class="fields">
   <label>Forma de recebimento<select id="receivingMethod"><option value="delivery">Entrega no endereço</option><option value="pickup">Retirada na loja</option></select></label>
@@ -198,6 +200,6 @@
 </fieldset>
 <button id="submitOrder" class="button" type="submit" disabled>Continuar com este frete</button></form><p id="cartStatus" role="status"></p></dialog>
   <script src="/script.js?v=rolagem" defer></script>
-  <script type="module" src="/loja/shop.js?v=zoom-produto"></script>
+  <script type="module" src="/loja/shop.js?v=visualizacao-produto"></script>
 </body>
 </html>
