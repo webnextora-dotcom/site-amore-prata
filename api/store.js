@@ -393,7 +393,7 @@ async function route(req,res,action,body) {
     return {};
   }
   if (!['dashboard','product','fulfillment','delete-product','shipping-quote','order-tracking'].includes(action)) fail(404,'Página não encontrada.');
-  await admin(req);
+  const user = await admin(req);
   if (action === 'dashboard' && req.method === 'GET') {
     const offset = Number(req.query.offset ?? 0);
     if (!Number.isSafeInteger(offset) || offset < 0) fail(400,'Página inválida.');
@@ -412,7 +412,8 @@ async function route(req,res,action,body) {
       listProducts(),
       db('/rest/v1/orders?select=id,customer,items,total,shipping,payment_status,fulfillment,created_at,shipping_requested,shipping_method,shipping_days,tracking_code&order=created_at.desc,id.desc&deleted_at=is.null&limit=26&offset='+offset+'&'+filters)
     ]);
-    return {products, orders:orders.slice(0,25), more:orders.length > 25};
+    return {products, orders:orders.slice(0,25), more:orders.length > 25,
+      pagbankInviteEnabled:user.id === env.PAGBANK_INVITE_OWNER_ID && Boolean(connectionSettings())};
   }
   if (action === 'shipping-quote' && req.method === 'POST') {
     const {id,shipping,days,method} = body;

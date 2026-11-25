@@ -32,6 +32,7 @@ function showSession(signedIn) {
   if (!signedIn) {
     byId('orders').replaceChildren();
     byId('productList').replaceChildren();
+    byId('pagbankConnection').hidden = true;
     byId('pagbankInviteUrl').value = '';
     byId('pagbankInviteResult').hidden = true;
     byId('pagbankInviteStatus').textContent = '';
@@ -257,6 +258,7 @@ async function load() {
     const result = await api('dashboard?'+query);
     if (request !== latestLoad) return;
     showSession(true);
+    byId('pagbankConnection').hidden = !result.pagbankInviteEnabled;
     renderOrders(result.orders,result.more);
     products = result.products;
     renderProducts();
