@@ -149,15 +149,28 @@ async function deliveryOptions(cep,items) {
   return [...options.values()].sort((a,b) => a.price - b.price);
 }
 
+const pickupStores = new Set(["Teresina Shopping","Shopping Rio Poty","Caxias Shopping"]);
+
 async function requestShipping(body) {
   if (!checkoutReady()) fail(503,'As compras online ainda não estão disponíveis.');
   const items = await checkoutItems(body);
   const customer = Object.fromEntries(Object.entries({name:120,email:150,phone:24,cep:12,address:180,number:20,complement:100,district:100,city:100,state:2}).map(([field,size]) => [field,clean(body.customer?.[field],size)]));
   customer.phone = customer.phone.replace(/\D/g,'').replace(/^55(?=\d{10,11}$)/,'');
   customer.cep = customer.cep.replace(/\D/g,'');
-  if (!customer.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email) || !/^\d{10,11}$/.test(customer.phone) || !/^\d{8}$/.test(customer.cep) || !customer.address || !customer.number || !customer.district || !customer.city || !/^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/.test(customer.state)) fail(400,'Preencha seus dados de contato e endereço.');
+  const pickup = body.pickupStore;
+  if (pickup !== undefined && !pickupStores.has(pickup)) fail(400,'Selecione uma loja para retirada.');
+  if (!customer.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email) || !/^\d{10,11}$/.test(customer.phone)) fail(400,'Preencha seus dados de contato.');
+  if (!pickup && (!/^\d{8}$/.test(customer.cep) || !customer.address || !customer.number || !customer.district || !customer.city || !/^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/.test(customer.state))) fail(400,'Preencha seu endereço de entrega.');
   const total = items.reduce((sum,item) => sum + item.price * item.quantity,0);
   if (total > 99999999) fail(400,'O total da sacola excede o limite do pedido.');
+  if (pickup) {
+    const id = randomUUID();
+    const {name,email,phone} = customer;
+    await db('/rest/v1/orders',{method:'POST',data:{
+      id,items,total,shipping:0,shipping_requested:false,customer:{name,email,phone,pickupStore:pickup}
+    }});
+    return {id};
+  }
   if (!body.delivery) fail(400,'Selecione uma opção de frete para continuar.');
   const options = await deliveryOptions(customer.cep,items);
   const delivery = options.find(option => option.id === body.delivery.id);
@@ -176,7 +189,7 @@ async function requestShipping(body) {
 
 async function shippingOrder(id) {
   if (typeof id !== 'string' || !uuid.test(id)) fail(400,'Pedido inválido.');
-  const [order] = await db('/rest/v1/orders?id=eq.'+id+'&deleted_at=is.null&select=id,shipping_requested,shipping_method,shipping_days,shipping,total,items,payment_status,fulfillment,tracking_code,checkout_url,checkout_expires_at,checkout_lock_until');
+  const [order] = await db('/rest/v1/orders?id=eq.'+id+'&deleted_at=is.null&select=id,customer,shipping_requested,shipping_method,shipping_days,shipping,total,items,payment_status,fulfillment,tracking_code,checkout_url,checkout_expires_at,checkout_lock_until');
   if (!order) fail(404,'Pedido não encontrado.');
   return order;
 }
@@ -184,7 +197,8 @@ async function shippingOrder(id) {
 async function startPayment(id) {
   if (!checkoutReady()) fail(503,'Checkout indisponível.');
   const order = await shippingOrder(id);
-  if (!order.shipping_requested || !order.shipping_method || order.payment_status !== 'pending') {
+  const pickup = pickupStores.has(order.customer?.pickupStore);
+  if (!(pickup || (order.shipping_requested && order.shipping_method)) || order.payment_status !== 'pending') {
     fail(409,'Este pedido ainda não está disponível para pagamento.');
   }
   const now = new Date();
@@ -201,7 +215,7 @@ async function startPayment(id) {
   const result = await pay('links',{
     order_nsu:id,redirect_url:origin+'/pedido',webhook_url:origin+'/api/webhook',
     items:order.shipping ? [...order.items,{description:'Frete Correios',price:order.shipping,quantity:1}] : order.items,
-    options:{single_payment:true,valid_until:expires,payment_methods_enabled:['credit_card','pix']}
+    options:{single_payment:true,valid_until:expires,payment_methods_enabled:['credit_card','pix'],...(pickup && {require_delivery_address:false})}
   });
   let url;
   try { url = new URL(result.url); } catch { fail(502,'A InfinitePay não retornou um link válido.'); }
@@ -244,7 +258,8 @@ async function route(req,res,action,body) {
     const order = await shippingOrder(body.id);
     return {
       waiting:order.shipping_requested && !order.shipping_method,
-      canPay:order.shipping_requested && Boolean(order.shipping_method) && order.payment_status === 'pending',
+      canPay:(pickupStores.has(order.customer?.pickupStore) || (order.shipping_requested && Boolean(order.shipping_method))) && order.payment_status === 'pending',
+      pickupStore:pickupStores.has(order.customer?.pickupStore) ? order.customer.pickupStore : null,
       method:order.shipping_method,days:order.shipping_days,shipping:order.shipping,
       total:order.total,paid:order.payment_status === 'paid',
       fulfillment:order.fulfillment,tracking:order.tracking_code

@@ -159,17 +159,24 @@
     </nav>
     <p>© Amore Prata</p>
   </footer>
-  <dialog id="cart" class="selection-dialog" aria-labelledby="cart-title"><div class="dialog-heading"><h2 id="cart-title">Sua sacola</h2><form method="dialog"><button class="outline" aria-label="Fechar sacola">Fechar</button></form></div><div id="lines"></div><p id="totals"></p><p><a href="/pedido">Acompanhar último pedido</a></p><form id="checkout" hidden><h3>Dados de entrega</h3><p id="shippingHelp">Informe seu CEP para consultar os valores e prazos de entrega.</p><div class="fields">
+  <dialog id="cart" class="selection-dialog" aria-labelledby="cart-title"><div class="dialog-heading"><h2 id="cart-title">Sua sacola</h2><form method="dialog"><button class="outline" aria-label="Fechar sacola">Fechar</button></form></div><div id="lines"></div><p id="totals"></p><p><a href="/pedido">Acompanhar último pedido</a></p><form id="checkout" hidden><h3>Como prefere receber?</h3>
+<div class="fields">
+  <label>Forma de recebimento<select id="receivingMethod"><option value="delivery">Entrega no endereço</option><option value="pickup">Retirada na loja</option></select></label>
+  <label id="pickupField" hidden>Loja para retirada<select name="pickupStore" required disabled><option value="">Selecione a loja</option><option>Teresina Shopping</option><option>Shopping Rio Poty</option><option>Caxias Shopping</option></select></label>
+</div>
+<p id="pickupHelp" hidden>A retirada é grátis. Aguarde o pedido ficar pronto antes de ir à loja.</p>
+<div class="fields">
 <label class="wide">Nome completo<input name="name" autocomplete="name" maxlength="120" required></label>
 <label>E-mail<input name="email" type="email" autocomplete="email" maxlength="150" required></label>
 <label>Telefone<input name="phone" type="tel" autocomplete="tel" maxlength="24" required></label>
+</div><fieldset id="deliveryAddress"><legend>Endereço de entrega</legend><p id="shippingHelp">Informe seu CEP para consultar os valores e prazos de entrega.</p><div class="fields">
 <label>CEP<input aria-describedby="cepStatus" name="cep" autocomplete="postal-code" inputmode="numeric" maxlength="10" required></label>
 <label>UF<select name="state" autocomplete="address-level1" required><option value="">Selecione</option></select></label>
 <label class="wide">Rua ou avenida<input name="address" autocomplete="address-line1" maxlength="180" required></label>
 <label>Número<input name="number" maxlength="20" required></label>
 <label>Complemento<input name="complement" autocomplete="address-line2" maxlength="100"></label>
 <label>Bairro<input name="district" maxlength="100" required></label>
-<label>Cidade<input name="city" autocomplete="address-level2" maxlength="100" required></label></div><p id="cepStatus" role="status"></p><fieldset id="autoShipping" hidden>
+<label>Cidade<input name="city" autocomplete="address-level2" maxlength="100" required></label></div><p id="cepStatus" role="status"></p></fieldset><fieldset id="autoShipping" hidden>
   <legend>Frete dos Correios</legend>
   <button id="calculateShipping" class="outline" type="button">Calcular frete pelo CEP</button>
   <p id="shippingStatus" role="status"></p>
@@ -177,6 +184,6 @@
 </fieldset>
 <button id="submitOrder" class="button" type="submit" disabled>Continuar com este frete</button></form><p id="cartStatus" role="status"></p></dialog>
   <script src="/script.js?v=rolagem" defer></script>
-  <script type="module" src="/loja/shop.js?v=colecoes"></script>
+  <script type="module" src="/loja/shop.js?v=retirada"></script>
 </body>
 </html>

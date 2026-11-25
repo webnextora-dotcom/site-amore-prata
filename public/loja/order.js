@@ -32,7 +32,13 @@ async function loadOrder() {
   }
   const order = await api('order-status',{id});
   if (order.paid) {
-    if (order.fulfillment === 'delivered') status.textContent = 'Pedido entregue.';
+    if (order.pickupStore) {
+      status.textContent = {
+        pending:'Pagamento confirmado. Seu pedido está em preparação para retirada.',
+        shipped:'Seu pedido está pronto para retirada.',
+        delivered:'Pedido retirado.'
+      }[order.fulfillment] || 'Pagamento confirmado.';
+    } else if (order.fulfillment === 'delivered') status.textContent = 'Pedido entregue.';
     else if (order.fulfillment === 'shipped') status.textContent = 'Pedido enviado.';
     else status.textContent = 'Pagamento confirmado. Pedido em preparação.';
     try {
@@ -43,8 +49,9 @@ async function loadOrder() {
   } else if (order.waiting) {
     status.textContent = 'Cotação solicitada. Guarde este link e volte para consultar o valor do frete.';
   } else {
-    status.textContent = order.canPay ? 'Frete cotado. Confira o total e pague para confirmar seu pedido.' : 'Pagamento aguardando confirmação.';
+    status.textContent = order.canPay ? (order.pickupStore ? 'Confira a loja escolhida e pague para confirmar a retirada.' : 'Frete cotado. Confira o total e pague para confirmar seu pedido.') : 'Pagamento aguardando confirmação.';
   }
+  if (order.pickupStore) details.append(element('p','Retirada grátis · '+order.pickupStore));
   if (order.method) {
     details.append(element('p','Correios '+order.method+' · '+money(order.shipping)+' · '+order.days+' dia(s) úteis após a postagem'));
   }

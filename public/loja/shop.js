@@ -12,6 +12,9 @@ const shippingOptions = byId('shippingOptions');
 const shippingStatus = byId('shippingStatus');
 const calculateShipping = byId('calculateShipping');
 const submit = byId('submitOrder');
+const receivingMethod = byId('receivingMethod');
+const pickupStore = checkout.elements.pickupStore;
+const isPickup = () => receivingMethod.value === 'pickup';
 let quoteRequest = 0;
 let deliveries = [];
 let autoShipping = false;
@@ -91,7 +94,7 @@ async function fillAddress() {
 cepInput.addEventListener('input',fillAddress);
 function scheduleShipping() {
   clearQuotes();
-  if (!autoShipping || !cartItems().length || cepInput.value.replace(/\D/g,'').length !== 8) return;
+  if (isPickup() || !autoShipping || !cartItems().length || cepInput.value.replace(/\D/g,'').length !== 8) return;
   submit.disabled = true;
   shippingStatus.textContent = 'Consultando os Correios…';
   quoteTimer = setTimeout(loadShipping,300);
@@ -138,6 +141,22 @@ async function loadShipping() {
     }
   }
 }
+function updateReceivingMethod() {
+  const pickup = isPickup();
+  byId('pickupField').hidden = !pickup;
+  byId('pickupHelp').hidden = !pickup;
+  pickupStore.disabled = !pickup;
+  const address = byId('deliveryAddress');
+  address.hidden = pickup;
+  address.disabled = pickup;
+  byId('autoShipping').hidden = pickup || !autoShipping;
+  submit.textContent = pickup ? 'Continuar com retirada' : 'Continuar com este frete';
+  scheduleShipping();
+  if (pickup) submit.disabled = submitting || !pickupStore.value;
+}
+
+receivingMethod.addEventListener('change',updateReceivingMethod);
+pickupStore.addEventListener('change',() => { submit.disabled = submitting || !pickupStore.value; });
 calculateShipping.addEventListener('click',loadShipping);
 cepInput.addEventListener('input',scheduleShipping);
 cepInput.addEventListener('change',fillAddress);
@@ -177,7 +196,7 @@ function change(id,quantity) {
   else delete quantities[id];
   try { localStorage.setItem('amore_cart',JSON.stringify(quantities)); } catch {}
   renderCart();
-  scheduleShipping();
+  if (!isPickup()) scheduleShipping();
 }
 
 const collectionPicker = byId('collectionPicker');
@@ -235,13 +254,16 @@ checkout.addEventListener('submit',async event => {
     const customer = Object.fromEntries(new FormData(checkout));
     const delivery = deliveries.find(option => option.id === customer.shippingChoice);
     delete customer.shippingChoice;
-    const result = await api('checkout',{customer,items:cartItems(),delivery});
+    const pickup = customer.pickupStore;
+    delete customer.pickupStore;
+    const fulfillment = isPickup() ? {pickupStore:pickup} : {delivery};
+    const result = await api('checkout',{customer,items:cartItems(),...fulfillment});
     try { localStorage.setItem('amore_last_order',result.id); } catch {}
     location.assign('/pedido?id='+encodeURIComponent(result.id));
   } catch(error) {
     byId('cartStatus').textContent = error.message;
     submitting = false;
-    submit.disabled = calculateShipping.disabled || !deliveries.length;
+    submit.disabled = isPickup() ? !pickupStore.value : calculateShipping.disabled || !deliveries.length;
     if (error.status === 409) scheduleShipping();
   }
 });
@@ -250,7 +272,7 @@ try {
   catalog = result.products;
   available = result.checkout;
   autoShipping = Boolean(result.autoShipping);
-  byId('autoShipping').hidden = !autoShipping;
+  updateReceivingMethod();
   if (!autoShipping) byId('shippingHelp').textContent = 'A cotação de frete está indisponível no momento.';
   if (result.demo) byId('catalogStatus').textContent = 'Prévia da coleção com preços ilustrativos.';
   renderProducts();

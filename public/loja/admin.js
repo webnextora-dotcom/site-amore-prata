@@ -99,21 +99,32 @@ function renderOrders(orders,more) {
     const meta = element('div',undefined,'order-meta');
     const paid = order.payment_status === 'paid';
     const date = new Date(order.created_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
+    const pickup = order.customer.pickupStore;
+    const pickupStatus = {pending:'Preparando retirada',shipped:'Pronto para retirada',delivered:'Retirado'};
     const waitingQuote = order.shipping_requested && !order.shipping_method;
-    meta.append(element('span',date),element('span',paid?'Pagamento confirmado':waitingQuote?'Aguardando cotação':'Aguardando pagamento'),element('span',fulfillment[order.fulfillment]));
+    meta.append(element('span',date),element('span',paid?'Pagamento confirmado':waitingQuote?'Aguardando cotação':'Aguardando pagamento'),element('span',(pickup ? pickupStatus : fulfillment)[order.fulfillment]));
     const details = element('details');
-    details.append(element('summary','Itens e endereço'),element('p','Pedido '+order.id));
+    details.append(element('summary',pickup?'Itens e retirada':'Itens e endereço'),element('p','Pedido '+order.id));
     const list = element('ul');
     for (const item of order.items) list.append(element('li',item.quantity+' × '+item.description+' · '+money(item.quantity*item.price)));
     const customer = order.customer;
-    details.append(list,element('p',waitingQuote?'Frete sob consulta':order.shipping_method?'Correios '+order.shipping_method+' · '+money(order.shipping)+' · '+order.shipping_days+' dia(s) úteis':'Frete '+money(order.shipping)),element('p',customer.email+' · '+customer.phone),element('p',[customer.address,customer.number,customer.complement,customer.district,customer.city+' – '+customer.state,customer.cep].filter(Boolean).join(', ')));
+    details.append(list,element('p',customer.email+' · '+customer.phone));
+    if (pickup) {
+      details.append(element('p','Retirada grátis · '+pickup));
+    } else {
+      details.append(
+        element('p',waitingQuote?'Frete sob consulta':order.shipping_method?'Correios '+order.shipping_method+' · '+money(order.shipping)+' · '+order.shipping_days+' dia(s) úteis':'Frete '+money(order.shipping)),
+        element('p',[customer.address,customer.number,customer.complement,customer.district,customer.city+' – '+customer.state,customer.cep].filter(Boolean).join(', '))
+      );
+    }
     card.append(heading,meta,details);
     if (waitingQuote) card.append(shippingQuoteForm(order));
-    if (paid) card.append(trackingForm(order));
+    if (paid && !pickup) card.append(trackingForm(order));
     const actions = element('div',undefined,'admin-tabs');
     if (paid && order.fulfillment !== 'delivered') {
       const shipment = order.fulfillment === 'pending';
-      const update = button(shipment?'Marcar como enviado':'Marcar como entregue',async () => {
+      const nextLabel = pickup ? (shipment?'Marcar como pronto para retirada':'Confirmar retirada') : (shipment?'Marcar como enviado':'Marcar como entregue');
+      const update = button(nextLabel,async () => {
         update.disabled = true;
         try {
           await api('fulfillment',{id:order.id,fulfillment:shipment?'shipped':'delivered'});
@@ -123,7 +134,7 @@ function renderOrders(orders,more) {
       });
       actions.append(update);
     }
-    if (order.shipping_requested) {
+    if (order.shipping_requested || pickup) {
       const url = new URL('/pedido?id='+encodeURIComponent(order.id),location.origin);
       actions.append(button('Copiar link do pedido',async () => {
         try {
