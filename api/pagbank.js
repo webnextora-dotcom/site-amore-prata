@@ -1,4 +1,5 @@
 import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';
+import {completePagBankConnection, connectionSettings, hasPagBankSession, startPagBankConnection} from '../lib/pagbank-connection.js';
 
 const clientId = '8916f0f2-5505-4557-a191-bace44802bb5';
 const origin = 'https://amore-prata-git-supabase-store-invite-nextorabr.vercel.app';
@@ -15,7 +16,7 @@ function page(res,status,title,message) {
   res.setHeader('Content-Type','text/html; charset=utf-8');
   res.end(`<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${title} | Nextora Digital</title><main style="max-width:36rem;margin:3rem auto;padding:0 1rem;font:1rem/1.6 system-ui">
-  <p>Nextora Digital · PagBank Sandbox</p><h1>${title}</h1><p>${message}</p></main></html>`);
+  <p>Nextora Digital · PagBank</p><h1>${title}</h1><p>${message}</p></main></html>`);
 }
 
 export default async function pagbank(req,res) {
@@ -25,6 +26,19 @@ export default async function pagbank(req,res) {
   res.setHeader('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'");
   if (req.method !== 'GET') return page(res,405,'Método inválido','Abra o convite no navegador.');
   const {stage,convite,code,state,error,modo} = req.query ?? {};
+  if (stage === 'connect-start' || (stage === 'callback' && hasPagBankSession(req))) {
+    try {
+      const settings = connectionSettings();
+      if (!settings) return page(res,503,'Conexão em preparação','A conexão da loja ainda está sendo configurada.');
+      if (stage === 'connect-start' && await startPagBankConnection(settings,req,res)) return;
+      if (stage === 'callback' && await completePagBankConnection(settings,req,res)) {
+        return page(res,200,'Conta conectada','O PagBank autorizou a conexão desta loja.');
+      }
+      return page(res,403,'Convite indisponível','Peça um novo convite à Nextora.');
+    } catch {
+      return page(res,502,'Falha na conexão','Avise a Nextora para verificar o erro e emitir um novo convite.');
+    }
+  }
   if (stage === 'start') {
     if (Date.now() > expiresAt || !/^[\w-]{43}$/.test(typeof convite === 'string' ? convite : '')
       || !equal(createHash('sha256').update(convite).digest('hex'),inviteHash)) {

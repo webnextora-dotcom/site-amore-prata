@@ -32,9 +32,30 @@ function showSession(signedIn) {
   if (!signedIn) {
     byId('orders').replaceChildren();
     byId('productList').replaceChildren();
+    byId('pagbankInviteUrl').value = '';
+    byId('pagbankInviteResult').hidden = true;
+    byId('pagbankInviteStatus').textContent = '';
     editor.close();
   }
 }
+
+byId('pagbankInvite').addEventListener('click',async event => {
+  const generate = event.currentTarget;
+  generate.disabled = true;
+  const feedback = byId('pagbankInviteStatus');
+  const result = byId('pagbankInviteResult');
+  result.hidden = true;
+  try {
+    const invite = await api('pagbank-invite',{});
+    byId('pagbankInviteUrl').value = invite.url;
+    result.hidden = false;
+    feedback.textContent = 'Convite gerado. Envie apenas ao responsável pela conta PagBank da loja.';
+  } catch (error) {
+    feedback.textContent = error.message || 'Não foi possível gerar o convite.';
+  } finally {
+    generate.disabled = false;
+  }
+});
 
 function orderForm(order,action,fields,label,success) {
   const form = element('form',undefined,'fields');

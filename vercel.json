@@ -2,6 +2,8 @@
   "buildCommand": "node build.mjs",
   "outputDirectory": "public",
   "rewrites": [
+    {"source": "/pagbank/conectar", "destination": "/api/pagbank?stage=connect-start"},
+    {"source": "/api/pagbank-invite", "destination": "/api/store?route=pagbank-invite"},
     {"source": "/pagbank/teste", "destination": "/api/pagbank?stage=start"},
     {"source": "/api/pagbank/callback", "destination": "/api/pagbank?stage=callback"},
     {"source": "/conectar", "destination": "/api/connect?stage=invite"},

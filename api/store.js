@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import {connectionSettings, createPagBankInvite, storedPagBankToken} from '../lib/pagbank-connection.js';
 
 const categories = ['Anéis','Brincos','Colares','Pulseiras','Conjuntos'];
 const uuid = /^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i;
@@ -6,11 +7,15 @@ const env = process.env;
 const supabaseSecret = () => env.SUPABASE_SECRET_KEY?.trim();
 const supabasePublic = () => env.SUPABASE_PUBLISHABLE_KEY?.trim();
 const configured = () => Boolean(env.SUPABASE_URL && env.SUPABASE_PUBLISHABLE_KEY && env.SUPABASE_SECRET_KEY);
-const pagBankToken = () => env.PAGBANK_TOKEN?.trim();
+const pagBankToken = async () => {
+  const settings = connectionSettings();
+  const stored = await storedPagBankToken(settings);
+  return stored || (env.PAGBANK_ENV === 'sandbox' ? env.PAGBANK_TOKEN?.trim() : null);
+};
 const pagBankHosts = {sandbox:'sandbox.api.pagseguro.com',production:'api.pagseguro.com'};
 const pagBankHost = () => Object.hasOwn(pagBankHosts, env.PAGBANK_ENV) ? pagBankHosts[env.PAGBANK_ENV] : undefined;
-const checkoutReady = () => configured()
-  && Boolean(env.SITE_URL && pagBankHost() && pagBankToken());
+const checkoutReady = async () => configured()
+  && Boolean(env.SITE_URL && pagBankHost() && await pagBankToken());
 const demo = [
   ['anel','Anel solitário','Anéis',12900],
   ['brinco','Brinco cravejado','Brincos',9900],
@@ -76,10 +81,12 @@ async function listProducts({publishedOnly = false} = {}) {
   }
 }
 
-function pay(path, data) {
+async function pay(path, data) {
+  const token = await pagBankToken();
+  if (!token) fail(503,'Checkout indisponível.');
   return upstream('https://' + pagBankHost() + '/' + path, {
     method:data ? 'POST' : 'GET',
-    headers:{'Content-Type':'application/json', Authorization:'Bearer ' + pagBankToken()},
+    headers:{'Content-Type':'application/json', Authorization:'Bearer ' + token},
     body:data ? JSON.stringify(data) : undefined
   }, 'O PagBank não respondeu. Tente novamente em instantes.');
 }
@@ -102,6 +109,7 @@ async function admin(req) {
   const user = await response.json();
   const allowed = await db('/rest/v1/store_admins?id=eq.' + encodeURIComponent(user.id) + '&select=id');
   if (!allowed.length) fail(403,'Esta conta não tem acesso à loja.');
+  return user;
 }
 
 function clean(value, size) {
@@ -196,7 +204,7 @@ async function deliveryOptions(cep,items) {
 const pickupStores = new Set(["Teresina Shopping","Shopping Rio Poty","Caxias Shopping"]);
 
 async function requestShipping(body) {
-  if (!checkoutReady()) fail(503,'As compras online ainda não estão disponíveis.');
+  if (!await checkoutReady()) fail(503,'As compras online ainda não estão disponíveis.');
   const items = await checkoutItems(body);
   const customer = Object.fromEntries(Object.entries({name:120,email:150,phone:24,cep:12,address:180,number:20,complement:100,district:100,city:100,state:2}).map(([field,size]) => [field,clean(body.customer?.[field],size)]));
   customer.phone = customer.phone.replace(/\D/g,'').replace(/^55(?=\d{10,11}$)/,'');
@@ -239,7 +247,7 @@ async function shippingOrder(id) {
 }
 
 async function startPayment(id) {
-  if (!checkoutReady()) fail(503,'Checkout indisponível.');
+  if (!await checkoutReady()) fail(503,'Checkout indisponível.');
   const order = await shippingOrder(id);
   const pickup = pickupStores.has(order.customer?.pickupStore);
   if (!(pickup || (order.shipping_requested && order.shipping_method)) || order.payment_status !== 'pending') {
@@ -287,7 +295,7 @@ async function confirm(body) {
   const id = body.reference_id;
   const providerOrder = body.id;
   if (!uuid.test(id) || !/^ORDE_[\da-f-]+$/i.test(providerOrder ?? '')) fail(400,'Dados do pagamento inválidos.');
-  if (!checkoutReady()) fail(503,'Checkout indisponível.');
+  if (!await checkoutReady()) fail(503,'Checkout indisponível.');
   const [order] = await db('/rest/v1/orders?id=eq.'+id+'&deleted_at=is.null&select=id,total,payment_status,checkout_url,invoice_slug,shipping_requested,shipping_method');
   if (!order) fail(404,'Pedido não encontrado.');
   if (order.payment_status === 'paid') return {paid:true};
@@ -304,11 +312,21 @@ async function confirm(body) {
 }
 
 async function route(req,res,action,body) {
+  if (action === 'pagbank-invite' && req.method === 'POST') {
+    const user = await admin(req);
+    if (!env.PAGBANK_INVITE_OWNER_ID || user.id !== env.PAGBANK_INVITE_OWNER_ID) {
+      fail(403,'Apenas o responsável pela integração pode emitir convites.');
+    }
+    const settings = connectionSettings();
+    if (!settings) fail(503,'A conexão de pagamentos ainda não foi configurada.');
+    if (req.headers.origin !== settings.origin) fail(403,'Origem inválida.');
+    return createPagBankInvite(settings);
+  }
   if (action === 'catalog' && req.method === 'GET') {
-    return {products:configured() ? await listProducts({publishedOnly:true}) : demo, demo:!configured(), checkout:checkoutReady(), autoShipping:Boolean(superFreteSettings())};
+    return {products:configured() ? await listProducts({publishedOnly:true}) : demo, demo:!configured(), checkout:await checkoutReady(), autoShipping:Boolean(superFreteSettings())};
   }
   if (action === 'delivery-options' && req.method === 'POST') {
-    if (!checkoutReady() || !superFreteSettings()) fail(503,'A cotação automática está indisponível.');
+    if (!await checkoutReady() || !superFreteSettings()) fail(503,'A cotação automática está indisponível.');
     const cep = clean(body.cep,12).replace(/\D/g,'');
     return {options:await deliveryOptions(cep,await checkoutItems(body))};
   }
@@ -325,7 +343,7 @@ async function route(req,res,action,body) {
         state:clean(customer.state,2)
       },
       waiting:order.shipping_requested && !order.shipping_method,
-      canPay:checkoutReady() && (pickupStores.has(order.customer?.pickupStore) || (order.shipping_requested && Boolean(order.shipping_method))) && order.payment_status === 'pending',
+      canPay:order.payment_status === 'pending' && (pickupStores.has(order.customer?.pickupStore) || (order.shipping_requested && Boolean(order.shipping_method))) && await checkoutReady(),
       pickupStore:pickupStores.has(order.customer?.pickupStore) ? order.customer.pickupStore : null,
       method:order.shipping_method,days:order.shipping_days,shipping:order.shipping,
       total:order.total,paid:order.payment_status === 'paid',createdAt:order.created_at,paidAt:order.paid_at,
