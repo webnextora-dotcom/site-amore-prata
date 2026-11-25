@@ -311,9 +311,11 @@ productForm.addEventListener('submit',async event => {
         reader.readAsDataURL(file);
       });
     }
-    await api('product',data);
+    const {product} = await api('product',data);
+    products = [product,...products.filter(item => item.id !== product.id)];
+    productFilters.reset();
+    renderProducts();
     editor.close();
-    await load();
     status.textContent = 'Produto salvo.';
   } catch(error) {message.textContent = error.message;}
   finally {formBusy(productForm,false);}

@@ -24,7 +24,21 @@ function fail(status, message) {
 async function upstream(url, options, message) {
   const response = await fetch(url, { ...options, signal: AbortSignal.timeout(12000) });
   if (!response.ok) {
-    console.error('Store upstream rejected request', { host: new URL(url).hostname, status: response.status });
+    const target = new URL(url);
+    const issue = await response.json().catch(() => null);
+    const code = /^[A-Z0-9]{5,10}$/.test(issue?.code) ? issue.code : undefined;
+    console.error('Store upstream rejected request', { host:target.hostname, path:target.pathname.startsWith('/storage/') ? '/storage' : target.pathname, status:response.status, code });
+    if (target.pathname === '/rest/v1/products' && options.method !== 'GET') {
+      if (code === '23514' && issue.message?.includes('products_category_check')) {
+        fail(409,'O banco ainda não aceita esta categoria. Aplique a atualização de categorias antes de salvar.');
+      }
+      if (code === '23505' && issue.message?.includes('products_live_sku_key')) {
+        fail(409,'Já existe um produto com esse código. Informe um código diferente.');
+      }
+      if (code === 'PGRST204' && /sku|stock_quantity/.test(issue.message ?? '')) {
+        fail(503,'Os campos de código e estoque ainda precisam ser habilitados no banco de dados.');
+      }
+    }
     fail(502, message);
   }
   return response.status === 204 ? null : response.json();
@@ -440,7 +454,7 @@ async function route(req,res,action,body) {
     }
     const saved = await db('/rest/v1/products'+(body.id?'?id=eq.'+body.id+'&deleted_at=is.null':''),{method:body.id?'PATCH':'POST',data});
     if (!saved.length) fail(404,'Produto não encontrado.');
-    return {};
+    return {product:saved[0]};
   }
   fail(405,'Método não permitido.');
 }
