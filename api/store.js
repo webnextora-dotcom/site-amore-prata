@@ -90,6 +90,17 @@ function superFreteSettings() {
   return {maxItems,weight,height,width,length};
 }
 
+function estimatedArrival(days, now = new Date()) {
+  const localDate = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(now);
+  const date = new Date(localDate+'T00:00:00Z');
+  for (let remaining = days; remaining > 0;) {
+    date.setUTCDate(date.getUTCDate()+1);
+    const weekday = date.getUTCDay();
+    if (weekday !== 0 && weekday !== 6) remaining--;
+  }
+  return date.toISOString().slice(0,10);
+}
+
 async function deliveryOptions(cep,items) {
   const box = superFreteSettings();
   if (!/^\d{8}$/.test(cep)) fail(400,'Informe um CEP com oito dígitos.');
@@ -117,7 +128,7 @@ async function deliveryOptions(cep,items) {
       })
     },'O SuperFrete está indisponível.');
   } catch {
-    fail(502,'Não foi possível calcular o frete agora. Tente novamente ou solicite uma cotação manual.');
+    fail(502,'Não foi possível calcular o frete agora. Tente novamente em instantes.');
   }
   if (!Array.isArray(result)) fail(502,'Não foi possível calcular o frete agora.');
   const options = new Map();
@@ -133,7 +144,7 @@ async function deliveryOptions(cep,items) {
       || !Number.isSafeInteger(price) || price <= 0 || price > 100000
       || !Number.isInteger(days) || days < 1 || days > 60) continue;
     const method = shippingServices[id];
-    options.set(id,{id,method,price:method === 'PAC' && subtotal >= freePacThreshold ? 0 : price,days});
+    options.set(id,{id,method,price:method === 'PAC' && subtotal >= freePacThreshold ? 0 : price,days,estimatedArrival:estimatedArrival(days)});
   }
   return [...options.values()].sort((a,b) => a.price - b.price);
 }
@@ -147,20 +158,18 @@ async function requestShipping(body) {
   if (!customer.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email) || !/^\d{10,11}$/.test(customer.phone) || !/^\d{8}$/.test(customer.cep) || !customer.address || !customer.number || !customer.district || !customer.city || !/^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/.test(customer.state)) fail(400,'Preencha seus dados de contato e endereço.');
   const total = items.reduce((sum,item) => sum + item.price * item.quantity,0);
   if (total > 99999999) fail(400,'O total da sacola excede o limite do pedido.');
-  let delivery;
-  if (body.delivery) {
-    const options = await deliveryOptions(customer.cep,items);
-    delivery = options.find(option => option.id === body.delivery.id);
-    if (!delivery || delivery.price !== body.delivery.price || delivery.days !== body.delivery.days) {
-      fail(409,'A cotação mudou. Calcule o frete novamente antes de continuar.');
-    }
+  if (!body.delivery) fail(400,'Selecione uma opção de frete para continuar.');
+  const options = await deliveryOptions(customer.cep,items);
+  const delivery = options.find(option => option.id === body.delivery.id);
+  if (!delivery || delivery.price !== body.delivery.price || delivery.days !== body.delivery.days) {
+    fail(409,'A cotação mudou. Calcule o frete novamente antes de continuar.');
   }
   const id = randomUUID();
-  const shipping = delivery?.price ?? 0;
+  const shipping = delivery.price;
   if (total + shipping > 99999999) fail(400,'O total da sacola excede o limite do pedido.');
   await db('/rest/v1/orders',{method:'POST',data:{
     id,customer,items,total:total+shipping,shipping,shipping_requested:true,
-    ...(delivery && {shipping_method:delivery.method,shipping_days:delivery.days})
+    shipping_method:delivery.method,shipping_days:delivery.days
   }});
   return {id};
 }

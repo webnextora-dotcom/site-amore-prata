@@ -21,12 +21,11 @@ let submitting = false;
 function clearQuotes() {
   clearTimeout(quoteTimer);
   quoteRequest++;
-  submit.disabled = submitting;
+  submit.disabled = true;
   deliveries = [];
   shippingOptions.replaceChildren();
   shippingStatus.textContent = '';
   calculateShipping.disabled = false;
-  submit.textContent = 'Solicitar cotação manual';
 }
 
 function cartItems() {
@@ -115,33 +114,27 @@ async function loadShipping() {
     if (request !== quoteRequest) return;
     deliveries = options;
     shippingStatus.textContent = options.length
-      ? 'Escolha uma opção com seguro ou solicite cotação manual.'
-      : 'Nenhuma opção com seguro disponível. Solicite cotação manual.';
-    const choices = options.length ? [...options,{id:'manual',method:'Cotação manual'}] : [];
-    for (const choice of choices) {
+      ? 'Previsão considerando postagem hoje e dias úteis, sem ajuste para feriados.'
+      : 'Nenhum frete disponível para esta sacola e CEP. Confira o CEP e a quantidade de peças.';
+    for (const [index,choice] of options.entries()) {
       const label = element('label');
+      label.style.display = 'block';
       const radio = element('input');
       radio.type = 'radio';
       radio.name = 'shippingChoice';
       radio.value = choice.id;
-      radio.addEventListener('change',() => {
-        submit.textContent = choice.id === 'manual' ? 'Solicitar cotação manual' : 'Continuar com este frete';
-      });
-      const name = choice.id === 'manual' ? choice.method : choice.method+' · '+(choice.price === 0 ? 'Frete grátis' : money(choice.price))+' · até '+choice.days+' dias úteis';
-      label.append(radio,document.createTextNode(' '+name));
-      shippingOptions.append(label,element('br'));
-    }
-    const first = shippingOptions.querySelector('input');
-    if (first) {
-      first.checked = true;
-      submit.textContent = 'Continuar com este frete';
+      radio.checked = index === 0;
+      const name = choice.method+' · '+(choice.price === 0 ? 'Frete grátis' : money(choice.price))+' · até '+choice.days+' dias úteis';
+      const arrival = choice.estimatedArrival.split('-').reverse().join('/');
+      label.append(radio,document.createTextNode(' '+name),element('br'),element('small','Chegada estimada: '+arrival));
+      shippingOptions.append(label);
     }
   } catch(error) {
     if (request === quoteRequest) shippingStatus.textContent = error.message;
   } finally {
     if (request === quoteRequest) {
       calculateShipping.disabled = false;
-      submit.disabled = submitting;
+      submit.disabled = submitting || !deliveries.length;
     }
   }
 }
@@ -235,7 +228,7 @@ checkout.addEventListener('submit',async event => {
   } catch(error) {
     byId('cartStatus').textContent = error.message;
     submitting = false;
-    submit.disabled = calculateShipping.disabled;
+    submit.disabled = calculateShipping.disabled || !deliveries.length;
     if (error.status === 409) scheduleShipping();
   }
 });
@@ -245,7 +238,7 @@ try {
   available = result.checkout;
   autoShipping = Boolean(result.autoShipping);
   byId('autoShipping').hidden = !autoShipping;
-  if (autoShipping) byId('shippingHelp').textContent = 'Informe seu CEP para consultar os valores e prazos de entrega.';
+  if (!autoShipping) byId('shippingHelp').textContent = 'A cotação de frete está indisponível no momento.';
   if (result.demo) byId('catalogStatus').textContent = 'Prévia da coleção com preços ilustrativos.';
   renderProducts();
   renderCart();
