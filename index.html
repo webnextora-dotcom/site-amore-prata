@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=rodape">
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
@@ -95,6 +95,26 @@
     <nav aria-label="Navegação do rodapé"><a href="#essencia">Coleção</a>
       <a href="#presentes">Presentes</a>
       <a href="#visite">Lojas</a></nav>
+    <div class="footer-services">
+      <section aria-labelledby="footer-payment">
+        <h2 id="footer-payment">Formas de pagamento</h2>
+        <ul class="footer-badges">
+          <li class="footer-badge footer-visa">Visa</li>
+          <li class="footer-badge footer-mastercard">Mastercard</li>
+          <li class="footer-badge footer-amex">American<br>Express</li>
+          <li class="footer-badge footer-elo">Elo</li>
+          <li class="footer-badge footer-pix">Pix</li>
+        </ul>
+      </section>
+      <section aria-labelledby="footer-delivery">
+        <h2 id="footer-delivery">Métodos de envio</h2>
+        <ul class="footer-badges">
+          <li class="footer-badge">Correios PAC</li>
+          <li class="footer-badge">Correios SEDEX</li>
+        </ul>
+        <p>Cotação pelo CEP via SuperFrete.</p>
+      </section>
+    </div>
     <p>© Amore Prata</p>
   </footer>
   <dialog id="cart" class="selection-dialog" aria-labelledby="cart-title"><div class="dialog-heading"><h2 id="cart-title">Sua sacola</h2><form method="dialog"><button class="outline" aria-label="Fechar sacola">Fechar</button></form></div><div id="lines"></div><p id="totals"></p><p><a href="/pedido">Acompanhar último pedido</a></p><form id="checkout" hidden><h3>Dados de entrega</h3><p id="shippingHelp">A loja consulta os Correios e informa o valor e o prazo antes do pagamento.</p><div class="fields">

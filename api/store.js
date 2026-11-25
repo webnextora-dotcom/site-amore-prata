@@ -190,7 +190,7 @@ async function startPayment(id) {
   const result = await pay('links',{
     order_nsu:id,redirect_url:origin+'/pedido',webhook_url:origin+'/api/webhook',
     items:order.shipping ? [...order.items,{description:'Frete Correios',price:order.shipping,quantity:1}] : order.items,
-    options:{single_payment:true,valid_until:expires}
+    options:{single_payment:true,valid_until:expires,payment_methods_enabled:['credit_card','pix']}
   });
   let url;
   try { url = new URL(result.url); } catch { fail(502,'A InfinitePay não retornou um link válido.'); }

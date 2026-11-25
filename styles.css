@@ -191,3 +191,39 @@ h2 em { color: var(--rose-deep); }
 #cart input, #cart select { width: 100%; min-width: 0; min-height: 44px; font: inherit; padding: .4rem; border: 1px solid var(--rose-deep); }
 #cart #totals { margin-block: 1rem; font-weight: 600; }
 @media (max-width: 600px) { .products { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; } }
+
+.footer-services {
+  flex: 0 0 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr));
+  gap: 1.75rem;
+  border-top: 1px solid rgb(255 255 255 / 25%);
+  padding-top: 1.5rem;
+}
+.footer-services h2 { margin: 0 0 .85rem; font: 1.4rem var(--serif); }
+.footer-services p { margin: .65rem 0 0; }
+.footer-badges { display: flex; flex-wrap: wrap; gap: .55rem; margin: 0; padding: 0; list-style: none; }
+.footer-badge {
+  display: inline-grid;
+  place-content: center;
+  align-items: center;
+  min-height: 2.6rem;
+  padding: .35rem .65rem;
+  border-radius: .3rem;
+  background: #fff;
+  color: #32192a;
+  text-align: center;
+  font: 700 .875rem/1.1 system-ui, sans-serif;
+}
+.footer-visa { color: #173b8f; font-style: italic; text-transform: uppercase; }
+.footer-mastercard { justify-items: center; font-size: .75rem; }
+.footer-mastercard::before {
+  content: "";
+  width: 1.6rem;
+  height: .85rem;
+  background: radial-gradient(circle at 68% 50%, #f79e1b 0 39%, transparent 41%),
+              radial-gradient(circle at 32% 50%, #eb001b 0 39%, transparent 41%);
+}
+.footer-amex { background: #1265aa; color: #fff; text-transform: uppercase; font-size: .7rem; }
+.footer-elo { background: #15131b; color: #fff; text-transform: lowercase; }
+.footer-pix { color: #12695b; }
