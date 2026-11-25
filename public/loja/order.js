@@ -8,7 +8,15 @@ const trackingHelp = byId('trackingHelp');
 const query = new URLSearchParams(location.search);
 const returningFromPayment = query.get('retorno') === 'pagbank';
 const dateTime = new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Fortaleza'});
-let confirmationChecks = 0;
+const confirmationStartedAt = Date.now();
+let confirmationTimer;
+
+function scheduleConfirmation() {
+  const elapsed = Date.now() - confirmationStartedAt;
+  if (!returningFromPayment || elapsed >= 300000) return;
+  clearTimeout(confirmationTimer);
+  confirmationTimer = setTimeout(()=>loadOrder().catch(showError),elapsed < 30000 ? 1000 : 5000);
+}
 let id = query.get('id') || query.get('order_nsu');
 if (!id) {
   try { id = localStorage.getItem('amore_last_order'); } catch {}
@@ -118,11 +126,10 @@ async function loadOrder() {
     details.append(alternate);
   }
   pay.hidden = returningFromPayment || !order.canPay;
-  if (returningFromPayment && !order.paid && confirmationChecks++ < 12) {
-    setTimeout(()=>loadOrder().catch(showError),2500);
-  }
+  if (!order.paid) scheduleConfirmation();
 }
 function showError(error) {
   status.textContent = error.message || 'Não foi possível consultar o pedido agora.';
+  scheduleConfirmation();
 }
 loadOrder().catch(showError);
