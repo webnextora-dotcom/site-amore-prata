@@ -24,14 +24,15 @@ export default async function pagbank(req,res) {
   res.setHeader('X-Robots-Tag','noindex, nofollow');
   res.setHeader('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'");
   if (req.method !== 'GET') return page(res,405,'Método inválido','Abra o convite no navegador.');
-  const {stage,convite,code,state,error} = req.query ?? {};
+  const {stage,convite,code,state,error,modo} = req.query ?? {};
   if (stage === 'start') {
     if (Date.now() > expiresAt || !/^[\w-]{43}$/.test(typeof convite === 'string' ? convite : '')
       || !equal(createHash('sha256').update(convite).digest('hex'),inviteHash)) {
       return page(res,403,'Convite indisponível','Use o link de teste enviado pela Nextora dentro da validade.');
     }
     const marker = nonce();
-    res.setHeader('Set-Cookie',cookie+'='+marker+'; Path=/; Max-Age=600; Secure; HttpOnly; SameSite=Lax');
+    const session = marker + (modo === 'manual' ? '.manual' : '');
+    res.setHeader('Set-Cookie',cookie+'='+session+'; Path=/; Max-Age=600; Secure; HttpOnly; SameSite=Lax');
     const query = new URLSearchParams({
       client_id:clientId, response_type:'code', redirect_uri:callback,
       scope:'checkout.create checkout.view payments.read', state:marker
@@ -41,12 +42,14 @@ export default async function pagbank(req,res) {
     return res.end();
   }
   if (stage !== 'callback') return page(res,404,'Rota indisponível','Abra o convite enviado pela Nextora.');
-  const expected = req.headers.cookie?.match(new RegExp('(?:^|;\\s*)'+cookie+'=([a-f0-9]{64})(?:;|$)'))?.[1];
-  if (!expected || !equal(expected,state)) return page(res,403,'Sessão inválida','Reabra o convite no mesmo navegador.');
+  const session = req.headers.cookie?.match(new RegExp('(?:^|;\\s*)'+cookie+'=([a-f0-9]{64})(\\.manual)?(?:;|$)'));
+  if (!session || !equal(session[1],state)) return page(res,403,'Sessão inválida','Reabra o convite no mesmo navegador.');
   res.setHeader('Set-Cookie',cookie+'=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax');
   if (error || typeof code !== 'string' || !/^[a-z0-9_-]{16,128}$/i.test(code)) {
     return page(res,400,'Autorização interrompida','O PagBank não retornou um código de autorização válido.');
   }
+  if (session[2]) return page(res,200,'Autorização Sandbox recebida',
+    'Devolva o controle do navegador à Nextora para concluir a configuração do token de teste.');
   const {PAGBANK_SANDBOX_TOKEN:token,PAGBANK_SANDBOX_CLIENT_SECRET:secret} = process.env;
   if (!token || !secret) return page(res,200,'Retorno de autorização recebido',
     'O PagBank devolveu o código à Nextora. A troca pelo token e o teste de pagamento ainda dependem das credenciais Sandbox do servidor.');
