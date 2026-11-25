@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-const categories = ['Anéis','Brincos','Colares','Pulseiras'];
+const categories = ['Anéis','Brincos','Colares','Pulseiras','Conjuntos'];
 const uuid = /^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i;
 const env = process.env;
 const supabaseSecret = () => env.SUPABASE_SECRET_KEY?.trim();

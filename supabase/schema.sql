@@ -3,7 +3,7 @@ create table public.store_admins (id uuid primary key references auth.users on d
 create table public.products (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  category text not null check (category in ('Anéis','Brincos','Colares','Pulseiras')),
+  category text not null check (category in ('Anéis','Brincos','Colares','Pulseiras','Conjuntos')),
   description text not null default '',
   image_url text not null default '',
   price integer not null check (price between 1 and 99999999),

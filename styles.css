@@ -171,7 +171,7 @@ h2 em { color: var(--rose-deep); }
   .button:hover, .product-card:hover img { transform: none; }
 }
 
-#filters { display: flex; flex-wrap: wrap; gap: .5rem; margin-block: 1.4rem; }
+#filters { display: grid; gap: .35rem; padding: .45rem; }
 #catalogStatus:empty, #cartStatus:empty { display: none; }
 .products { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 1.5rem; }
 .product img, .product .placeholder { width: 76%; max-width: 10.5rem; margin-inline: auto; aspect-ratio: 5 / 6; object-fit: cover; background: var(--rose-pale); }
@@ -307,3 +307,33 @@ h2 em { color: var(--rose-deep); }
 }
 .product-details summary:hover { background: var(--rose-pale); }
 .product-details p { overflow-wrap: anywhere; }
+
+.collection-picker {
+  width: min(100%, 19rem);
+  margin-block: 1.4rem;
+  border: 1px solid var(--line);
+  border-radius: .55rem;
+  background: var(--cream);
+  color: var(--ink);
+}
+.collection-picker summary {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  min-height: 48px;
+  padding: .55rem .85rem;
+  color: #53263f;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+.collection-picker summary::-webkit-details-marker { display: none; }
+.collection-icon {
+  flex: 0 0 1.1rem;
+  height: .75rem;
+  border-block: 2px solid currentColor;
+  background: linear-gradient(currentColor,currentColor) center / 100% 2px no-repeat;
+}
+#activeCollection { margin-inline-start: .4rem; font-size: .85rem; font-weight: 500; }
+#filters .outline { border-color: transparent; text-align: start; }
+#filters .outline[aria-pressed="true"] { border-color: #673653; }

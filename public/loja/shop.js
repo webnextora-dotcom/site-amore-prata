@@ -1,4 +1,4 @@
-import {api,button,byId,categories,element,money} from './shared.js';
+import {api,button,byId,categories,element,money} from './shared.js?v=colecoes';
 
 let catalog = [];
 let available = false;
@@ -180,12 +180,21 @@ function change(id,quantity) {
   scheduleShipping();
 }
 
+const collectionPicker = byId('collectionPicker');
+collectionPicker.addEventListener('keydown',event => {
+  if (event.key !== 'Escape' || !collectionPicker.open) return;
+  collectionPicker.open = false;
+  collectionPicker.querySelector('summary').focus();
+});
+
 function renderProducts() {
+  byId('activeCollection').textContent = filter;
   byId('filters').replaceChildren(...['Todos',...categories].map(category => {
     const node = button(category,() => {
       filter = category;
       renderProducts();
-      [...byId('filters').children].find(item => item.textContent === category)?.focus();
+      collectionPicker.open = false;
+      collectionPicker.querySelector('summary').focus();
     });
     node.setAttribute('aria-pressed',String(category === filter));
     return node;

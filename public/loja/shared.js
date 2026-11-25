@@ -1,6 +1,6 @@
 export const byId = id => document.getElementById(id);
 export const money = cents => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(cents/100);
-export const categories = ['Anéis','Brincos','Colares','Pulseiras'];
+export const categories = ['Anéis','Brincos','Colares','Pulseiras','Conjuntos'];
 export function element(tag, text, className) {
   const node = document.createElement(tag);
   if (text !== undefined) node.textContent = text;

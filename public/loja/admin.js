@@ -1,4 +1,4 @@
-import {api,button,byId,categories,element,money} from './shared.js';
+import {api,button,byId,categories,element,money} from './shared.js?v=colecoes';
 
 const login = byId('login');
 const editor = byId('editor');
