@@ -41,6 +41,26 @@ function db(path, { method = 'GET', data, file, type } = {}) {
   }, 'O Supabase está indisponível ou precisa ser configurado.');
 }
 
+async function listProducts({publishedOnly = false} = {}) {
+  const pageSize = 250;
+  const products = [];
+  const query = new URLSearchParams({
+    deleted_at:'is.null',
+    order:'created_at.desc,id.desc',
+    limit:String(pageSize)
+  });
+  if (publishedOnly) {
+    query.set('active','eq.true');
+    query.set('select','id,name,category,description,image_url,price');
+  }
+  while (true) {
+    query.set('offset',String(products.length));
+    const page = await db('/rest/v1/products?'+query);
+    if (!page.length) return products;
+    products.push(...page);
+  }
+}
+
 function pay(path, data) {
   return upstream('https://api.checkout.infinitepay.io/' + path, {
     method:'POST',
@@ -245,7 +265,7 @@ async function confirm(body) {
 
 async function route(req,res,action,body) {
   if (action === 'catalog' && req.method === 'GET') {
-    return {products:configured() ? await db('/rest/v1/products?active=eq.true&deleted_at=is.null&select=id,name,category,description,image_url,price&order=created_at.desc') : demo, demo:!configured(), checkout:checkoutReady(), autoShipping:Boolean(superFreteSettings())};
+    return {products:configured() ? await listProducts({publishedOnly:true}) : demo, demo:!configured(), checkout:checkoutReady(), autoShipping:Boolean(superFreteSettings())};
   }
   if (action === 'delivery-options' && req.method === 'POST') {
     if (!checkoutReady() || !superFreteSettings()) fail(503,'A cotação automática está indisponível.');
@@ -335,7 +355,7 @@ async function route(req,res,action,body) {
       filters.set(column,'in.('+values.join(',')+')');
     }
     const [products,orders] = await Promise.all([
-      db('/rest/v1/products?deleted_at=is.null&order=created_at.desc'),
+      listProducts(),
       db('/rest/v1/orders?select=id,customer,items,total,shipping,payment_status,fulfillment,created_at,shipping_requested,shipping_method,shipping_days,tracking_code&order=created_at.desc,id.desc&deleted_at=is.null&limit=26&offset='+offset+'&'+filters)
     ]);
     return {products, orders:orders.slice(0,25), more:orders.length > 25};
