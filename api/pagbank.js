@@ -34,7 +34,7 @@ export default async function pagbank(req,res) {
     res.setHeader('Set-Cookie',cookie+'='+marker+'; Path=/; Max-Age=600; Secure; HttpOnly; SameSite=Lax');
     const query = new URLSearchParams({
       client_id:clientId, response_type:'code', redirect_uri:callback,
-      scope:'checkout.create+checkout.view', state:marker
+      scope:'checkout.create checkout.view', state:marker
     });
     res.setHeader('Location','https://connect.sandbox.pagbank.com.br/oauth2/authorize?'+query);
     res.statusCode = 303;
