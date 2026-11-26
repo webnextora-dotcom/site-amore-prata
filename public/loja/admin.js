@@ -2,6 +2,8 @@ import {clearPaymentSetup,openPaymentSetup} from './admin-payments.js';
 import {clearFinance,openFinance} from './admin-finance.js';
 import {api,button,byId,categories,element,money} from './shared.js?v=colecoes';
 
+let openPaymentsOnLogin = new URLSearchParams(location.search).get('aba') === 'pagamentos';
+
 const login = byId('login');
 const editor = byId('editor');
 const productForm = byId('productForm');
@@ -243,6 +245,10 @@ async function load() {
     if (request !== latestLoad) return;
     showSession(true);
     byId('paymentsTab').hidden = !result.paymentSetupAllowed;
+    if (openPaymentsOnLogin && result.paymentSetupAllowed) {
+      openPaymentsOnLogin = false;
+      byId('paymentsTab').click();
+    }
     if (!result.paymentSetupAllowed && !byId('paymentsPanel').hidden) byId('ordersTab').click();
     renderOrders(result.orders,result.more);
     if (!byId('financePanel').hidden) openFinance();
