@@ -75,3 +75,4 @@ summary{cursor:pointer}
 .filters input[type=checkbox]{width:1.1rem;height:1.1rem;margin:0;accent-color:var(--wine)}
 #orders[aria-busy=true]{opacity:.65}
 @media(max-width:540px){.filters{align-items:flex-start}.filters fieldset{width:100%}}
+.finance-income{color:#17633b}

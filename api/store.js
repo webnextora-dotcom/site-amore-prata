@@ -50,13 +50,13 @@ async function upstream(url, options, message) {
   return response.status === 204 ? null : response.json();
 }
 
-function db(path, { method = 'GET', data, file, type } = {}) {
+function db(path, { method = 'GET', data, file, type, prefer = 'return=representation' } = {}) {
   if (!supabaseSecret()?.startsWith('sb_secret_') || !/^[\x21-\x7E]+$/.test(supabaseSecret())) {
     fail(503, 'A chave secreta do Supabase precisa ser configurada.');
   }
   return upstream(env.SUPABASE_URL + path, {
     method,
-    headers: { apikey: supabaseSecret(), 'Content-Type': type || 'application/json', Prefer: 'return=representation' },
+    headers: { apikey: supabaseSecret(), 'Content-Type': type || 'application/json', Prefer: prefer },
     body: file || (data === undefined ? undefined : JSON.stringify(data))
   }, 'O Supabase está indisponível ou precisa ser configurado.');
 }
@@ -110,6 +110,12 @@ async function admin(req) {
   const allowed = await db('/rest/v1/store_admins?id=eq.' + encodeURIComponent(user.id) + '&select=id');
   if (!allowed.length) fail(403,'Esta conta não tem acesso à loja.');
   return user;
+}
+
+function validDate(value) {
+  if (typeof value !== 'string' || !/^[1-9]\d{3}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(value+'T00:00:00Z');
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10) === value;
 }
 
 function clean(value, size) {
@@ -392,8 +398,41 @@ async function route(req,res,action,body) {
     res.setHeader('Set-Cookie','amore_session='+session.access_token+'; HttpOnly; Path=/api; SameSite=Strict; Secure; Max-Age='+session.expires_in);
     return {};
   }
-  if (!['dashboard','product','fulfillment','delete-product','shipping-quote','order-tracking'].includes(action)) fail(404,'Página não encontrada.');
+  if (!['dashboard','product','fulfillment','delete-product','shipping-quote','order-tracking','finance','danfe'].includes(action)) fail(404,'Página não encontrada.');
   const user = await admin(req);
+  if (action === 'finance' && req.method === 'GET') {
+    const {start, end, grouping} = req.query;
+    const offset = Number(req.query.offset ?? 0);
+    if (!validDate(start) || !validDate(end) || start > end ||
+        !['day','week','month','year'].includes(grouping) ||
+        !Number.isInteger(offset) || offset < 0 || offset > 2147483647) {
+      fail(400,'Confira as datas e o agrupamento do relatório.');
+    }
+    return db('/rest/v1/rpc/store_finance',{method:'POST',data:{
+      start_date:start, end_date:end, grouping, page_offset:offset
+    }});
+  }
+  if (action === 'danfe' && ['GET','POST'].includes(req.method)) {
+    const id = req.method === 'GET' ? req.query.id : body.id;
+    if (typeof id !== 'string' || !uuid.test(id)) fail(400,'Pedido inválido.');
+    const [order] = await db('/rest/v1/orders?id=eq.'+id+'&payment_status=eq.paid&select=id');
+    if (!order) fail(404,'Venda confirmada não encontrada.');
+    if (req.method === 'POST') {
+      const pdf = body.pdf;
+      if (typeof pdf !== 'string' || pdf.length > 4_000_000 ||
+          !/^[A-Za-z0-9+/]+={0,2}$/.test(pdf) ||
+          Buffer.from(pdf,'base64').subarray(0,5).toString() !== '%PDF-') {
+        fail(400,'Selecione um DANFE em PDF de até 3 MB.');
+      }
+      await db('/rest/v1/order_danfes?on_conflict=order_id',{
+        method:'POST', prefer:'resolution=merge-duplicates,return=minimal', data:{order_id:id,pdf_base64:pdf}
+      });
+      return {};
+    }
+    const [danfe] = await db('/rest/v1/order_danfes?order_id=eq.'+id+'&select=pdf_base64');
+    if (!danfe) fail(404,'Anexe o DANFE desta venda para imprimir.');
+    return Buffer.from(danfe.pdf_base64,'base64');
+  }
   if (action === 'dashboard' && req.method === 'GET') {
     const offset = Number(req.query.offset ?? 0);
     if (!Number.isSafeInteger(offset) || offset < 0) fail(400,'Página inválida.');
@@ -509,6 +548,12 @@ export default async function handler(req,res) {
     if (!body || typeof body !== 'object') fail(400,'Dados inválidos.');
     const result = await route(req,res,req.query.route,body);
     res.statusCode = 200;
+    if (Buffer.isBuffer(result)) {
+      res.setHeader('Content-Type','application/pdf');
+      res.setHeader('Content-Disposition','inline; filename="DANFE.pdf"');
+      res.end(result);
+      return;
+    }
     res.end(JSON.stringify(result));
   } catch (error) {
     if (!error.status && !(error instanceof SyntaxError)) {
