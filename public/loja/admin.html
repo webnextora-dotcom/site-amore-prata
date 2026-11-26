@@ -8,7 +8,7 @@
   <button class="button">Salvar senha</button>
 </form>
 <form class="panel login" id="login" hidden><h2>Entrar</h2><label>E-mail<input type="email" name="email" autocomplete="username" required></label><label>Senha<input type="password" name="password" autocomplete="current-password" required></label><button class="button">Entrar</button></form>
-<section id="dashboard" hidden><nav class="admin-sections" aria-label="Seções do painel"><button class="outline" id="ordersTab" aria-pressed="true" aria-controls="ordersPanel"><strong>Pedidos</strong><span>Pagamentos e entregas</span></button><button class="outline" id="productsTab" aria-pressed="false" aria-controls="productsPanel"><strong>Produtos</strong><span>Catálogo da loja</span></button><button class="outline" id="financeTab" aria-pressed="false" aria-controls="financePanel"><strong>Financeiro</strong><span>Vendas e DANFE</span></button></nav>
+<section id="dashboard" hidden><nav class="admin-sections" aria-label="Seções do painel"><button class="outline" id="ordersTab" aria-pressed="true" aria-controls="ordersPanel"><strong>Pedidos</strong><span>Pagamentos e entregas</span></button><button class="outline" id="productsTab" aria-pressed="false" aria-controls="productsPanel"><strong>Produtos</strong><span>Catálogo da loja</span></button><button class="outline" id="financeTab" aria-pressed="false" aria-controls="financePanel"><strong>Financeiro</strong><span>Vendas e DANFE</span></button><button class="outline" id="paymentsTab" aria-pressed="false" aria-controls="paymentsPanel" hidden><strong>Pagamentos</strong><span>Conta de recebimento</span></button></nav>
 <section id="ordersPanel"><h2>Pedidos</h2>
 <form id="orderFilters" class="filters" aria-label="Filtros de pedidos">
 <fieldset><legend>Pagamento</legend>
@@ -43,6 +43,20 @@
   </form>
   <p id="financeStatus" role="status"></p>
   <div id="financeResults"></div>
+</section>
+<section id="paymentsPanel" hidden>
+  <h2>Pagamentos</h2>
+  <form class="panel" id="infinitePayForm">
+    <h3>Conta de recebimento InfinitePay</h3>
+    <p>No app InfinitePay, ative o Checkout Integrado e crie uma chave para a loja.</p>
+    <p>Ao salvar, a loja valida a configuração sem efetuar pagamento. Novos links passam a usar a conta cadastrada.</p>
+    <div class="fields">
+      <label>InfiniteTag<input name="handle" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="101" placeholder="$sualoja" required></label>
+      <label>Chave do Checkout Integrado<input type="password" name="apiKey" autocomplete="off" maxlength="256" required></label>
+    </div>
+    <button class="button" disabled>Validar e salvar</button>
+    <p id="infinitePayStatus" role="status"></p>
+  </form>
 </section>
 </section>
 </main><dialog id="editor"><div class="dialog-heading"><h2 id="editorTitle">Produto</h2><form method="dialog"><button class="outline">Fechar</button></form></div><form id="productForm"><div class="fields">

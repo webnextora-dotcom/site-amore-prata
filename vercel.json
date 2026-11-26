@@ -2,6 +2,7 @@
   "buildCommand": "node build.mjs",
   "outputDirectory": "public",
   "rewrites": [
+    {"source": "/api/infinitepay-setup", "destination": "/api/store?route=infinitepay-setup"},
     {"source": "/api/finance", "destination": "/api/store?route=finance"},
     {"source": "/api/danfe", "destination": "/api/store?route=danfe"},
     {"source": "/api/delivery-options", "destination": "/api/store?route=delivery-options"},

@@ -1,3 +1,4 @@
+import {clearPaymentSetup,openPaymentSetup} from './admin-payments.js';
 import {clearFinance,openFinance} from './admin-finance.js';
 import {api,button,byId,categories,element,money} from './shared.js?v=colecoes';
 
@@ -31,6 +32,9 @@ function showSession(signedIn) {
   byId('dashboard').hidden = !signedIn;
   byId('logout').hidden = !signedIn;
   if (!signedIn) {
+    clearPaymentSetup();
+    byId('paymentsTab').hidden = true;
+    if (!byId('paymentsPanel').hidden) byId('ordersTab').click();
     clearFinance();
     byId('orders').replaceChildren();
     byId('productList').replaceChildren();
@@ -238,6 +242,8 @@ async function load() {
     const result = await api('dashboard?'+query);
     if (request !== latestLoad) return;
     showSession(true);
+    byId('paymentsTab').hidden = !result.paymentSetupAllowed;
+    if (!result.paymentSetupAllowed && !byId('paymentsPanel').hidden) byId('ordersTab').click();
     renderOrders(result.orders,result.more);
     if (!byId('financePanel').hidden) openFinance();
     products = result.products;
@@ -276,14 +282,16 @@ byId('logout').addEventListener('click',async () => {
   try {await api('logout',{});latestLoad++;showSession(false);status.textContent = '';offset = 0; products = [];}
   catch(error) {status.textContent = error.message;}
 });
-for (const name of ['orders','products','finance']) {
+for (const name of ['orders','products','finance','payments']) {
   byId(name+'Tab').addEventListener('click',() => {
-    for (const section of ['orders','products','finance']) {
+    for (const section of ['orders','products','finance','payments']) {
       byId(section+'Panel').hidden = section !== name;
       byId(section+'Tab').setAttribute('aria-pressed',String(section === name));
     }
     if (name === 'finance') openFinance();
     else clearFinance();
+    if (name === 'payments') openPaymentSetup();
+    else clearPaymentSetup();
   });
 }
 for (const [id,step] of [['prev',-25],['next',25]]) {
