@@ -12,7 +12,7 @@ create index if not exists orders_finance_paid_date_idx
   where payment_status = 'paid';
 
 create or replace function public.store_finance(
-  start_date date, end_date date, grouping text, page_offset integer
+  start_date date, end_date date, "grouping" text, page_offset integer
 ) returns jsonb
 language sql stable set search_path = ''
 as $$
@@ -24,7 +24,7 @@ as $$
       and coalesce(paid_at, created_at) < ((end_date + 1)::timestamp at time zone 'America/Sao_Paulo')
   ),
   periods as (
-    select date_trunc(grouping, sale_at at time zone 'America/Sao_Paulo')::date as period,
+    select date_trunc("grouping", sale_at at time zone 'America/Sao_Paulo')::date as period,
            count(*) as count, sum(total) as total, sum(shipping) as shipping
     from sales
     group by 1
