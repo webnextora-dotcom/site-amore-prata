@@ -65,12 +65,20 @@ function periodLabel(value,grouping) {
   return (grouping === 'week'?'Semana de ':'')+shortDate(value);
 }
 
+function revenueAmount(cents) {
+  return element('strong',money(cents),cents > 0 ? 'finance-income' : undefined);
+}
+
 function render(data,offset) {
+  const gross = element('p');
+  gross.append('Receita bruta ',revenueAmount(data.total),' · '+data.count+' vendas confirmadas');
+  const breakdown = element('p');
+  breakdown.append('Produtos ',revenueAmount(data.total-data.shipping),' · Frete ',revenueAmount(data.shipping));
   const summary = element('article',undefined,'panel');
   summary.append(
     element('h3','Resumo de '+shortDate(query.get('start'))+' a '+shortDate(query.get('end'))),
-    element('p','Receita bruta '+money(data.total)+' · '+data.count+' vendas confirmadas'),
-    element('p','Produtos '+money(data.total-data.shipping)+' · Frete '+money(data.shipping))
+    gross,
+    breakdown
   );
   results.append(summary);
   if (!data.count) {
@@ -80,7 +88,9 @@ function render(data,offset) {
   const periods = element('details',undefined,'panel');
   const list = element('ul');
   for (const period of data.periods) {
-    list.append(element('li',periodLabel(period.period,query.get('grouping'))+' · '+period.count+' vendas · '+money(period.total)));
+    const row = element('li',periodLabel(period.period,query.get('grouping'))+' · '+period.count+' vendas · ');
+    row.append(revenueAmount(period.total));
+    list.append(row);
   }
   periods.append(element('summary','Totais por período'),list);
   results.append(periods,element('h3','Vendas confirmadas'));
@@ -88,7 +98,7 @@ function render(data,offset) {
   for (const order of data.orders) {
     const card = element('article',undefined,'panel');
     const heading = element('div',undefined,'toolbar');
-    heading.append(element('strong',order.customer || 'Pedido '+order.id),element('strong',money(order.total)));
+    heading.append(element('strong',order.customer || 'Pedido '+order.id),revenueAmount(order.total));
     const date = new Date(order.sale_at).toLocaleString('pt-BR',{timeZone});
     card.append(heading,element('p',(order.legacy_date?'Data do pedido: ':'Pagamento confirmado em ')+date),
       element('p','Pedido '+order.id),fiscalControls(order));
