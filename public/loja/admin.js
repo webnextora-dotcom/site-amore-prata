@@ -1,3 +1,4 @@
+import {clearFinance,openFinance} from './admin-finance.js';
 import {api,button,byId,categories,element,money} from './shared.js?v=colecoes';
 
 const login = byId('login');
@@ -30,6 +31,7 @@ function showSession(signedIn) {
   byId('dashboard').hidden = !signedIn;
   byId('logout').hidden = !signedIn;
   if (!signedIn) {
+    clearFinance();
     byId('orders').replaceChildren();
     byId('productList').replaceChildren();
     editor.close();
@@ -237,6 +239,7 @@ async function load() {
     if (request !== latestLoad) return;
     showSession(true);
     renderOrders(result.orders,result.more);
+    if (!byId('financePanel').hidden) openFinance();
     products = result.products;
     renderProducts();
   } catch(error) {
@@ -273,12 +276,14 @@ byId('logout').addEventListener('click',async () => {
   try {await api('logout',{});latestLoad++;showSession(false);status.textContent = '';offset = 0; products = [];}
   catch(error) {status.textContent = error.message;}
 });
-for (const name of ['orders','products']) {
+for (const name of ['orders','products','finance']) {
   byId(name+'Tab').addEventListener('click',() => {
-    for (const section of ['orders','products']) {
+    for (const section of ['orders','products','finance']) {
       byId(section+'Panel').hidden = section !== name;
       byId(section+'Tab').setAttribute('aria-pressed',String(section === name));
     }
+    if (name === 'finance') openFinance();
+    else clearFinance();
   });
 }
 for (const [id,step] of [['prev',-25],['next',25]]) {

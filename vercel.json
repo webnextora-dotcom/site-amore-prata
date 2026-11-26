@@ -2,6 +2,8 @@
   "buildCommand": "node build.mjs",
   "outputDirectory": "public",
   "rewrites": [
+    {"source": "/api/finance", "destination": "/api/store?route=finance"},
+    {"source": "/api/danfe", "destination": "/api/store?route=danfe"},
     {"source": "/api/delivery-options", "destination": "/api/store?route=delivery-options"},
     {"source": "/api/order-status", "destination": "/api/store?route=order-status"},
     {"source": "/api/order-payment", "destination": "/api/store?route=order-payment"},

@@ -8,7 +8,7 @@
   <button class="button">Salvar senha</button>
 </form>
 <form class="panel login" id="login" hidden><h2>Entrar</h2><label>E-mail<input type="email" name="email" autocomplete="username" required></label><label>Senha<input type="password" name="password" autocomplete="current-password" required></label><button class="button">Entrar</button></form>
-<section id="dashboard" hidden><nav class="admin-sections" aria-label="Seções do painel"><button class="outline" id="ordersTab" aria-pressed="true" aria-controls="ordersPanel"><strong>Pedidos</strong><span>Pagamentos e entregas</span></button><button class="outline" id="productsTab" aria-pressed="false" aria-controls="productsPanel"><strong>Produtos</strong><span>Catálogo da loja</span></button></nav>
+<section id="dashboard" hidden><nav class="admin-sections" aria-label="Seções do painel"><button class="outline" id="ordersTab" aria-pressed="true" aria-controls="ordersPanel"><strong>Pedidos</strong><span>Pagamentos e entregas</span></button><button class="outline" id="productsTab" aria-pressed="false" aria-controls="productsPanel"><strong>Produtos</strong><span>Catálogo da loja</span></button><button class="outline" id="financeTab" aria-pressed="false" aria-controls="financePanel"><strong>Financeiro</strong><span>Vendas e DANFE</span></button></nav>
 <section id="ordersPanel"><h2>Pedidos</h2>
 <form id="orderFilters" class="filters" aria-label="Filtros de pedidos">
 <fieldset><legend>Pagamento</legend>
@@ -30,7 +30,21 @@
 <label><input type="checkbox" name="visibility" value="hidden"> Ocultos</label>
 </fieldset>
 <button type="reset" class="outline">Limpar filtros</button>
-</form><div id="productList" aria-live="polite"></div></section></section>
+</form><div id="productList" aria-live="polite"></div></section>
+<section id="financePanel" hidden>
+  <h2>Financeiro</h2>
+  <form class="panel" id="financeFilters">
+    <div class="fields">
+      <label>Agrupar por<select name="grouping"><option value="day">Diário</option><option value="week">Semanal</option><option value="month" selected>Mensal</option><option value="year">Anual</option></select></label>
+      <label>Data inicial<input type="date" name="start" required></label>
+      <label>Data final<input type="date" name="end" required></label>
+    </div>
+    <button class="button">Consultar vendas</button>
+  </form>
+  <p id="financeStatus" role="status"></p>
+  <div id="financeResults"></div>
+</section>
+</section>
 </main><dialog id="editor"><div class="dialog-heading"><h2 id="editorTitle">Produto</h2><form method="dialog"><button class="outline">Fechar</button></form></div><form id="productForm"><div class="fields">
 <input type="hidden" name="id"><label class="wide">Nome<input name="name" maxlength="120" required></label>
 <label>Código do produto<input name="sku" maxlength="48" placeholder="Ex.: AN-001"></label>
