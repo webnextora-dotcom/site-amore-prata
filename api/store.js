@@ -325,7 +325,7 @@ async function startPayment(id) {
   return {url:url.href};
 }
 
-async function confirm(body) {
+async function confirm(body, {retry = false} = {}) {
   const id = body.order_nsu;
   const tx = clean(body.transaction_nsu,150);
   const slug = clean(body.slug || body.invoice_slug,150);
@@ -337,10 +337,18 @@ async function confirm(body) {
   if (order.payment_status === 'paid') return {paid:order.transaction_nsu === tx && order.invoice_slug === slug};
   const profile = await paymentProfile(order.infinitepay_profile_id ?? null);
   if (!profile.handle) fail(503,'A conta de recebimento do pedido está indisponível.');
-  const result = await pay('payment_check',{order_nsu:id,transaction_nsu:tx,slug},{handle:profile.handle});
-  if (result.success !== true || result.paid !== true || result.amount !== order.total) return {paid:false};
-  await db('/rest/v1/orders?id=eq.'+id+'&payment_status=eq.pending',{method:'PATCH',data:{payment_status:'paid',transaction_nsu:tx,invoice_slug:slug,paid_at:new Date().toISOString()}});
-  return {paid:true};
+  const verification = {order_nsu:id,transaction_nsu:tx,slug};
+  for (const delay of retry ? [0,350,900] : [0]) {
+    if (delay) await new Promise(resolve => setTimeout(resolve,delay));
+    const result = await pay('payment_check',verification,{handle:profile.handle});
+    if (result.success !== true || result.paid !== true) continue;
+    if (result.amount !== order.total) return {paid:false};
+    const [updated] = await db('/rest/v1/orders?id=eq.'+id+'&payment_status=eq.pending&deleted_at=is.null',{method:'PATCH',data:{payment_status:'paid',transaction_nsu:tx,invoice_slug:slug,paid_at:new Date().toISOString()}});
+    if (updated) return {paid:true};
+    const [saved] = await db('/rest/v1/orders?id=eq.'+id+'&deleted_at=is.null&select=payment_status,transaction_nsu,invoice_slug');
+    return {paid:saved?.payment_status === 'paid' && saved.transaction_nsu === tx && saved.invoice_slug === slug};
+  }
+  return {paid:false};
 }
 
 async function route(req,res,action,body) {
@@ -374,7 +382,7 @@ async function route(req,res,action,body) {
   }
   if (action === 'order-payment' && req.method === 'POST') return startPayment(body.id);
   if (['webhook','confirm'].includes(action) && req.method === 'POST') {
-    const result = await confirm(body);
+    const result = await confirm(body,{retry:action === 'webhook'});
     if (action === 'webhook' && !result.paid) fail(400,'Pagamento não confirmado.');
     return result;
   }
