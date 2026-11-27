@@ -134,7 +134,7 @@ function paymentLink(value) {
 function pay(path, data, {handle,apiKey}) {
   return upstream('https://api.checkout.infinitepay.io/' + path, {
     method:'POST',
-    headers:{'Content-Type':'application/json', 'X-Api-Key':apiKey},
+    headers:{'Content-Type':'application/json', ...(apiKey && {'X-Api-Key':apiKey})},
     body:JSON.stringify({handle, ...data})
   }, 'A InfinitePay não respondeu. Tente novamente em instantes.');
 }
@@ -336,8 +336,8 @@ async function confirm(body) {
   if (order.shipping_requested && !order.shipping_method) return {paid:false};
   if (order.payment_status === 'paid') return {paid:order.transaction_nsu === tx && order.invoice_slug === slug};
   const profile = await paymentProfile(order.infinitepay_profile_id ?? null);
-  if (!profile.handle || !profile.apiKey) fail(503,'A conta de recebimento do pedido está indisponível.');
-  const result = await pay('payment_check',{order_nsu:id,transaction_nsu:tx,slug},profile);
+  if (!profile.handle) fail(503,'A conta de recebimento do pedido está indisponível.');
+  const result = await pay('payment_check',{order_nsu:id,transaction_nsu:tx,slug},{handle:profile.handle});
   if (result.success !== true || result.paid !== true || result.amount !== order.total) return {paid:false};
   await db('/rest/v1/orders?id=eq.'+id+'&payment_status=eq.pending',{method:'PATCH',data:{payment_status:'paid',transaction_nsu:tx,invoice_slug:slug,paid_at:new Date().toISOString()}});
   return {paid:true};
