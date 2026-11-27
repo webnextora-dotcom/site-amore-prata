@@ -13,6 +13,11 @@ const productFilters = byId('productFilters');
 let offset = 0;
 let products = [];
 let latestLoad = 0;
+let lastOrders = '';
+let refreshingOrders = false;
+let editingOrder = false;
+const ordersView = byId('orders');
+ordersView.addEventListener('input',() => { editingOrder = true; });
 for (const category of categories) {
   const label = element('label');
   const checkbox = element('input');
@@ -98,10 +103,14 @@ function trackingForm(order) {
 
 function renderOrders(orders,more) {
   const view = byId('orders');
+  const expanded = new Set([...view.querySelectorAll('details[open]')].map(details => details.parentElement.dataset.orderId));
+  lastOrders = JSON.stringify([orders,more]);
+  editingOrder = false;
   view.replaceChildren();
   if (!orders.length) view.append(element('p',new FormData(orderFilters).keys().next().done ? 'Nenhum pedido nesta página.' : 'Nenhum pedido corresponde aos filtros.'));
   for (const order of orders) {
     const card = element('article',undefined,'panel');
+    card.dataset.orderId = order.id;
     const heading = element('div',undefined,'toolbar');
     heading.append(element('strong',order.customer.name),element('strong',money(order.total)));
     const meta = element('div',undefined,'order-meta');
@@ -112,6 +121,7 @@ function renderOrders(orders,more) {
     const waitingQuote = order.shipping_requested && !order.shipping_method;
     meta.append(element('span',date),element('span',paid?'Pagamento confirmado':waitingQuote?'Aguardando cotação':'Aguardando pagamento'),element('span',(pickup ? pickupStatus : fulfillment)[order.fulfillment]));
     const details = element('details');
+    details.open = expanded.has(order.id);
     details.append(element('summary',pickup?'Itens e retirada':'Itens e endereço'),element('p','Pedido '+order.id));
     const list = element('ul');
     for (const item of order.items) list.append(element('li',item.quantity+' × '+item.description+' · '+money(item.quantity*item.price)));
@@ -231,18 +241,27 @@ function renderProducts() {
   }
 }
 
-async function load() {
-  const request = ++latestLoad;
+function canRefreshOrders() {
+  return !document.hidden && !byId('dashboard').hidden && !byId('ordersPanel').hidden
+    && !editingOrder && !ordersView.contains(document.activeElement) && !ordersView.hasAttribute('aria-busy');
+}
+
+async function load({background = false} = {}) {
+  const request = background ? latestLoad : ++latestLoad;
   const query = new URLSearchParams({offset:String(offset)});
   const filters = new FormData(orderFilters);
   for (const name of ['payment','delivery']) {
     const values = filters.getAll(name);
     if (values.length) query.set(name,values.join(','));
   }
-  byId('orders').setAttribute('aria-busy','true');
+  if (!background) ordersView.setAttribute('aria-busy','true');
   try {
     const result = await api('dashboard?'+query);
     if (request !== latestLoad) return;
+    if (background) {
+      if (canRefreshOrders() && JSON.stringify([result.orders,result.more]) !== lastOrders) renderOrders(result.orders,result.more);
+      return;
+    }
     showSession(true);
     byId('paymentsTab').hidden = !result.paymentSetupAllowed;
     if (openPaymentsOnLogin && result.paymentSetupAllowed) {
@@ -255,14 +274,23 @@ async function load() {
     products = result.products;
     renderProducts();
   } catch(error) {
-    if (request !== latestLoad) return;
+    if (request !== latestLoad || background) return;
     showSession(false);
     if (error.status !== 401) status.textContent = error.message;
     throw error;
   } finally {
-    if (request === latestLoad) byId('orders').removeAttribute('aria-busy');
+    if (!background && request === latestLoad) ordersView.removeAttribute('aria-busy');
   }
 }
+
+async function refreshOrders() {
+  if (refreshingOrders || !canRefreshOrders()) return;
+  refreshingOrders = true;
+  try { await load({background:true}); }
+  finally { refreshingOrders = false; }
+}
+setInterval(refreshOrders,3000);
+document.addEventListener('visibilitychange',refreshOrders);
 
 function reloadOrders() {
   offset = 0;
