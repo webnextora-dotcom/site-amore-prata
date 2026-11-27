@@ -1,3 +1,4 @@
+import { correiosRates } from '../lib/correios.js';
 import { createCipheriv, createDecipheriv, randomBytes, randomUUID } from 'node:crypto';
 
 const categories = ['Anéis','Brincos','Colares','Pulseiras','Conjuntos'];
@@ -175,13 +176,13 @@ async function checkoutItems(body) {
 }
 
 const freePacThreshold = 23990;
-const minimumAdditionalInsurance = 2563; // SuperFrete minimum for PAC and SEDEX, in cents.
+const minimumAdditionalInsurance = 2563; // Correios automatic insurance, in cents.
 const shippingServices = {'1':'PAC','2':'SEDEX'};
 
-function superFreteSettings() {
-  if (!env.SUPERFRETE_TOKEN?.trim()) return null;
+function shippingSettings() {
+  if (!env.CORREIOS_API_CODE?.trim() || !env.CORREIOS_USER?.trim() || !env.CORREIOS_POSTING_CARD?.trim()) return null;
   let box;
-  try { box = JSON.parse(env.SUPERFRETE_BOX || 'null'); } catch { return null; }
+  try { box = JSON.parse(env.CORREIOS_BOX || 'null'); } catch { return null; }
   if (!box || !Number.isInteger(box.maxItems) || box.maxItems < 1
     || !['weight','height','width','length'].every(key => Number.isFinite(box[key]) && box[key] > 0)) return null;
   const {maxItems,weight,height,width,length} = box;
@@ -200,34 +201,14 @@ function estimatedArrival(days, now = new Date()) {
 }
 
 async function deliveryOptions(cep,items) {
-  const box = superFreteSettings();
+  const box = shippingSettings();
   if (!/^\d{8}$/.test(cep)) fail(400,'Informe um CEP com oito dígitos.');
   const subtotal = items.reduce((sum,item) => sum + item.price * item.quantity,0);
   const quantity = items.reduce((sum,item) => sum + item.quantity,0);
   if (!box || quantity > box.maxItems || subtotal <= 0 || subtotal > 99999999) return [];
-  const {weight,height,width,length} = box;
-  const insuranceOptions = subtotal >= minimumAdditionalInsurance
-    ? {insurance_value:subtotal/100,use_insurance_value:true}
-    : {use_insurance_value:false};
-
   let result;
   try {
-    result = await upstream('https://api.superfrete.com/api/v0/calculator',{
-      method:'POST',
-      headers:{
-        Authorization:'Bearer ' + env.SUPERFRETE_TOKEN.trim(),
-        'User-Agent':'Amore Prata (joiasamoreprata@gmail.com)',
-        'Content-Type':'application/json',
-        Accept:'application/json'
-      },
-      body:JSON.stringify({
-        from:{postal_code:'64046010'},
-        to:{postal_code:cep},
-        services:'1,2',
-        package:{weight,height,width,length},
-        options:insuranceOptions
-      })
-    },'O SuperFrete está indisponível.');
+    result = await correiosRates({env,cep,box,subtotal,insured:subtotal >= minimumAdditionalInsurance,upstream});
   } catch {
     fail(502,'Não foi possível calcular o frete agora. Tente novamente em instantes.');
   }
@@ -236,13 +217,12 @@ async function deliveryOptions(cep,items) {
   for (const option of result) {
     const id = String(option?.id);
     if (!Object.hasOwn(shippingServices,id) || option.error) continue;
-    const price = Math.round(Number(option.price)*100);
-    const days = Number(option.delivery_range?.max ?? option.delivery_time);
-    if (!Array.isArray(option.packages) || option.packages.length !== 1
-      || !Number.isSafeInteger(price) || price <= 0 || price > 100000
+    const {price,days} = option;
+    if (!Number.isSafeInteger(price) || price <= 0 || price > 100000
       || !Number.isInteger(days) || days < 1 || days > 60) continue;
     const method = shippingServices[id];
-    options.set(id,{id,method,price:method === 'PAC' && subtotal >= freePacThreshold ? 0 : price,days,estimatedArrival:estimatedArrival(days)});
+    options.set(id,{id,method,price:method === 'PAC' && subtotal >= freePacThreshold ? 0 : price,days,
+      estimatedArrival:option.estimatedArrival || estimatedArrival(days)});
   }
   return [...options.values()].sort((a,b) => a.price - b.price);
 }
@@ -353,10 +333,10 @@ async function confirm(body, {retry = false} = {}) {
 
 async function route(req,res,action,body) {
   if (action === 'catalog' && req.method === 'GET') {
-    return {products:configured() ? await listProducts({publishedOnly:true}) : demo, demo:!configured(), checkout:await checkoutReady(), autoShipping:Boolean(superFreteSettings())};
+    return {products:configured() ? await listProducts({publishedOnly:true}) : demo, demo:!configured(), checkout:await checkoutReady(), autoShipping:Boolean(shippingSettings())};
   }
   if (action === 'delivery-options' && req.method === 'POST') {
-    if (!await checkoutReady() || !superFreteSettings()) fail(503,'A cotação automática está indisponível.');
+    if (!await checkoutReady() || !shippingSettings()) fail(503,'A cotação automática está indisponível.');
     const cep = clean(body.cep,12).replace(/\D/g,'');
     return {options:await deliveryOptions(cep,await checkoutItems(body))};
   }
