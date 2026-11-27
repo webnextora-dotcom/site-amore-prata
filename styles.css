@@ -123,6 +123,17 @@ h2 em { color: var(--rose-deep); }
 .benefits { padding-block: 2.6rem; }
 .benefits h3 { margin-bottom: .45rem; font-size: 1.35rem; }
 .benefits p { color: var(--muted); }
+.institutional {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: clamp(1.5rem, 5vw, 4.5rem);
+  padding-block: clamp(3rem, 6vw, 6rem);
+  scroll-margin-top: 7rem;
+}
+.institutional-copy p { max-width: 34rem; margin: .9rem 0; color: var(--muted); }
+.institutional-copy .button { margin-top: .75rem; }
+.institutional img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
 .visit { background: var(--rose-pale); padding-block: clamp(3rem, 6vw, 6rem); }
 .visit-intro { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 2rem; margin-bottom: 2.75rem; }
 .visit-intro p:not(.eyebrow) { margin-top: .75rem; }
@@ -165,7 +176,7 @@ h2 em { color: var(--rose-deep); }
   .hero-photo::after {
     background: linear-gradient(0deg, rgb(24 16 14 / 96%), rgb(24 16 14 / 83%) 52%, transparent 86%);
   }
-  .section-heading, .visit-intro, .gift { grid-template-columns: 1fr; }
+  .section-heading, .visit-intro, .gift, .institutional { grid-template-columns: 1fr; }
   .product-track { grid-auto-columns: 46%; gap: .75rem; }
   .gift img { min-height: 0; max-height: 21rem; object-position: center 43%; }
   .gift-copy { padding: 2rem var(--gutter) 2.5rem; }
