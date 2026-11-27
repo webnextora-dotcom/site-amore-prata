@@ -175,6 +175,7 @@ async function checkoutItems(body) {
 }
 
 const freePacThreshold = 23990;
+const minimumAdditionalInsurance = 2563; // SuperFrete minimum for PAC and SEDEX, in cents.
 const shippingServices = {'1':'PAC','2':'SEDEX'};
 
 function superFreteSettings() {
@@ -205,6 +206,9 @@ async function deliveryOptions(cep,items) {
   const quantity = items.reduce((sum,item) => sum + item.quantity,0);
   if (!box || quantity > box.maxItems || subtotal <= 0 || subtotal > 99999999) return [];
   const {weight,height,width,length} = box;
+  const insuranceOptions = subtotal >= minimumAdditionalInsurance
+    ? {insurance_value:subtotal/100,use_insurance_value:true}
+    : {use_insurance_value:false};
 
   let result;
   try {
@@ -221,7 +225,7 @@ async function deliveryOptions(cep,items) {
         to:{postal_code:cep},
         services:'1,2',
         package:{weight,height,width,length},
-        options:{insurance_value:subtotal/100,use_insurance_value:true}
+        options:insuranceOptions
       })
     },'O SuperFrete está indisponível.');
   } catch {
@@ -234,7 +238,6 @@ async function deliveryOptions(cep,items) {
     if (!Object.hasOwn(shippingServices,id) || option.error) continue;
     const price = Math.round(Number(option.price)*100);
     const days = Number(option.delivery_range?.max ?? option.delivery_time);
-    // The declared value is sent above. The carrier may include insurance at no extra cost.
     if (!Array.isArray(option.packages) || option.packages.length !== 1
       || !Number.isSafeInteger(price) || price <= 0 || price > 100000
       || !Number.isInteger(days) || days < 1 || days > 60) continue;
