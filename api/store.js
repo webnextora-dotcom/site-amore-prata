@@ -44,7 +44,8 @@ async function upstream(url, options, message) {
     }
     fail(502, message);
   }
-  return response.status === 204 ? null : response.json();
+  if (response.status === 204 || options.headers?.Prefer === 'return=minimal') return null;
+  return response.json();
 }
 
 function db(path, { method = 'GET', data, file, type, prefer = 'return=representation' } = {}) {
