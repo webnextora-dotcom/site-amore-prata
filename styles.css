@@ -249,6 +249,9 @@ h2 em { color: var(--rose-deep); }
 .footer-amex { background: #1265aa; color: #fff; text-transform: uppercase; font-size: .7rem; }
 .footer-elo { background: #15131b; color: #fff; text-transform: lowercase; }
 .footer-pix { color: #12695b; }
+.footer-payment-label { margin: .85rem 0 .5rem; font: 600 .85rem system-ui, sans-serif; }
+.footer-hipercard { background: #a71930; color: #fff; }
+.footer-diners { color: #125584; }
 
 .ticker { position: relative; padding-inline: 0; }
 .ticker-window { overflow: hidden; }
