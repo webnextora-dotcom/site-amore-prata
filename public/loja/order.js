@@ -43,6 +43,7 @@ async function loadOrder() {
   }
   const order = await api('order-status',{id});
   details.replaceChildren();
+  if (order.orderNumber) details.append(element('p','Número do pedido: '+order.orderNumber));
   if (order.paid) {
     if (payment.order_nsu === id) history.replaceState(null,'','/pedido?id='+encodeURIComponent(id));
     if (order.pickupStore) {

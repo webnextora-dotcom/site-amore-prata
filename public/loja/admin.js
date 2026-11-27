@@ -114,6 +114,7 @@ function renderOrders(orders,more) {
     const heading = element('div',undefined,'toolbar');
     heading.append(element('strong',order.customer.name),element('strong',money(order.total)));
     const meta = element('div',undefined,'order-meta');
+    if (order.order_number) meta.append(element('span','Pedido '+order.order_number));
     const paid = order.payment_status === 'paid';
     const date = new Date(order.created_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
     const pickup = order.customer.pickupStore;
@@ -122,7 +123,7 @@ function renderOrders(orders,more) {
     meta.append(element('span',date),element('span',paid?'Pagamento confirmado':waitingQuote?'Aguardando cotação':'Aguardando pagamento'),element('span',(pickup ? pickupStatus : fulfillment)[order.fulfillment]));
     const details = element('details');
     details.open = expanded.has(order.id);
-    details.append(element('summary',pickup?'Itens e retirada':'Itens e endereço'),element('p','Pedido '+order.id));
+    details.append(element('summary',pickup?'Itens e retirada':'Itens e endereço'));
     const list = element('ul');
     for (const item of order.items) list.append(element('li',item.quantity+' × '+item.description+' · '+money(item.quantity*item.price)));
     const customer = order.customer;
@@ -260,6 +261,8 @@ async function load({background = false} = {}) {
   const query = new URLSearchParams({offset:String(offset)});
   if (background) query.set('ordersOnly','1');
   const filters = new FormData(orderFilters);
+  const orderNumber = filters.get('orderNumber')?.trim();
+  if (orderNumber) query.set('orderNumber',orderNumber);
   for (const name of ['payment','delivery']) {
     const values = filters.getAll(name);
     if (values.length) query.set(name,values.join(','));
@@ -306,7 +309,13 @@ function reloadOrders() {
   offset = 0;
   load().catch(() => {});
 }
-orderFilters.addEventListener('change',reloadOrders);
+orderFilters.addEventListener('change',event => {
+  if (event.target.type === 'checkbox' && orderFilters.checkValidity()) reloadOrders();
+});
+orderFilters.addEventListener('submit',event => {
+  event.preventDefault();
+  reloadOrders();
+});
 orderFilters.addEventListener('reset',() => setTimeout(reloadOrders,0));
 productFilters.addEventListener('change',renderProducts);
 productFilters.addEventListener('reset',() => setTimeout(renderProducts,0));

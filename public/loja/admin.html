@@ -11,6 +11,7 @@
 <section id="dashboard" hidden><nav class="admin-sections" aria-label="Seções do painel"><button class="outline" id="ordersTab" aria-pressed="true" aria-controls="ordersPanel"><strong>Pedidos</strong><span>Pagamentos e entregas</span></button><button class="outline" id="productsTab" aria-pressed="false" aria-controls="productsPanel"><strong>Produtos</strong><span>Catálogo da loja</span></button><button class="outline" id="financeTab" aria-pressed="false" aria-controls="financePanel"><strong>Financeiro</strong><span>Vendas e DANFE</span></button><button class="outline" id="paymentsTab" aria-pressed="false" aria-controls="paymentsPanel" hidden><strong>Pagamentos</strong><span>Conta de recebimento</span></button></nav>
 <section id="ordersPanel"><h2>Pedidos</h2>
 <form id="orderFilters" class="filters" aria-label="Filtros de pedidos">
+<label>Número do pedido<input name="orderNumber" inputmode="numeric" pattern="[1-9][0-9]{0,14}" maxlength="15" autocomplete="off"></label>
 <fieldset><legend>Pagamento</legend>
 <label><input type="checkbox" name="payment" value="pending"> Aguardando pagamento</label>
 <label><input type="checkbox" name="payment" value="paid"> Pagamento confirmado</label>
@@ -21,6 +22,7 @@
 <label><input type="checkbox" name="delivery" value="delivered"> Entregue</label>
 </fieldset>
 <button type="reset" class="outline">Limpar filtros</button>
+<button type="submit" class="outline">Buscar</button>
 </form><div id="orders" aria-live="polite"></div><div class="admin-tabs"><button class="outline" id="prev" hidden>Anterior</button><button class="outline" id="next" hidden>Próxima</button></div></section>
 <section id="productsPanel" hidden><div class="toolbar"><h2>Produtos</h2><button class="button" id="addProduct">Novo produto</button></div>
 <form id="productFilters" class="filters" aria-label="Filtros de produtos">

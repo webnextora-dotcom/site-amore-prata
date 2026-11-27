@@ -267,7 +267,7 @@ async function requestShipping(body) {
 
 async function shippingOrder(id) {
   if (typeof id !== 'string' || !uuid.test(id)) fail(400,'Pedido inválido.');
-  const [order] = await db('/rest/v1/orders?id=eq.'+id+'&deleted_at=is.null&select=id,customer,shipping_requested,shipping_method,shipping_days,shipping,total,items,payment_status,fulfillment,tracking_code,checkout_url,checkout_expires_at,checkout_lock_until'+(setupKey()?',infinitepay_profile_id':''));
+  const [order] = await db('/rest/v1/orders?id=eq.'+id+'&deleted_at=is.null&select=id,order_number,customer,shipping_requested,shipping_method,shipping_days,shipping,total,items,payment_status,fulfillment,tracking_code,checkout_url,checkout_expires_at,checkout_lock_until'+(setupKey()?',infinitepay_profile_id':''));
   if (!order) fail(404,'Pedido não encontrado.');
   return order;
 }
@@ -352,6 +352,7 @@ async function route(req,res,action,body) {
         city:clean(customer.city,100),
         state:clean(customer.state,2)
       },
+      orderNumber:order.order_number,
       waiting:order.shipping_requested && !order.shipping_method,
       canPay:(pickupStores.has(order.customer?.pickupStore) || (order.shipping_requested && Boolean(order.shipping_method))) && order.payment_status === 'pending',
       pickupStore:pickupStores.has(order.customer?.pickupStore) ? order.customer.pickupStore : null,
@@ -454,6 +455,10 @@ async function route(req,res,action,body) {
     const offset = Number(req.query.offset ?? 0);
     if (!Number.isSafeInteger(offset) || offset < 0) fail(400,'Página inválida.');
     const filters = new URLSearchParams();
+    if (req.query.orderNumber !== undefined) {
+      if (typeof req.query.orderNumber !== 'string' || !/^[1-9]\d{0,14}$/.test(req.query.orderNumber)) fail(400,'Número do pedido inválido.');
+      filters.set('order_number','eq.'+req.query.orderNumber);
+    }
     for (const [param,column,allowed] of [
       ['payment','payment_status',['pending','paid']],
       ['delivery','fulfillment',['pending','shipped','delivered']]
@@ -466,7 +471,7 @@ async function route(req,res,action,body) {
     }
     const [products,orders] = await Promise.all([
       req.query.ordersOnly === '1' ? [] : listProducts(),
-      db('/rest/v1/orders?select=id,customer,items,total,shipping,payment_status,fulfillment,created_at,shipping_requested,shipping_method,shipping_days,tracking_code&order=created_at.desc,id.desc&deleted_at=is.null&limit=26&offset='+offset+'&'+filters)
+      db('/rest/v1/orders?select=id,order_number,customer,items,total,shipping,payment_status,fulfillment,created_at,shipping_requested,shipping_method,shipping_days,tracking_code&order=created_at.desc,id.desc&deleted_at=is.null&limit=26&offset='+offset+'&'+filters)
     ]);
     return {products, orders:orders.slice(0,25), more:orders.length > 25, paymentSetupAllowed:setupOwner(user)};
   }
