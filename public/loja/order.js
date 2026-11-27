@@ -44,6 +44,7 @@ async function loadOrder() {
   const order = await api('order-status',{id});
   details.replaceChildren();
   if (order.paid) {
+    if (payment.order_nsu === id) history.replaceState(null,'','/pedido?id='+encodeURIComponent(id));
     if (order.pickupStore) {
       status.textContent = {
         pending:'Pagamento confirmado. Seu pedido está em preparação para retirada.',
@@ -84,8 +85,8 @@ async function loadOrder() {
   }
   if (!order.waiting) details.append(element('p','Total '+money(order.total)));
   if (order.tracking) {
-    const tracking = element('a','Rastrear nos Correios');
-    tracking.href = 'https://rastreamento.correios.com.br/app/index.php';
+    const tracking = element('a','Rastrear na SuperFrete');
+    tracking.href = 'https://rastreio.superfrete.com/#/tracking/'+encodeURIComponent(order.tracking);
     tracking.target = '_blank';
     tracking.rel = 'noopener noreferrer';
     const code = element('p','Código de rastreamento: '+order.tracking);
