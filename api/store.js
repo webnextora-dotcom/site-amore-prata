@@ -234,10 +234,8 @@ async function deliveryOptions(cep,items) {
     if (!Object.hasOwn(shippingServices,id) || option.error) continue;
     const price = Math.round(Number(option.price)*100);
     const days = Number(option.delivery_range?.max ?? option.delivery_time);
-    const [parcel] = Array.isArray(option.packages) ? option.packages : [];
-    // The calculator returns the insurance charge here. The declared value is sent in options.
-    const insuranceCharge = Number(parcel?.insurance_value);
-    if (option.packages?.length !== 1 || !Number.isFinite(insuranceCharge) || insuranceCharge <= 0
+    // The declared value is sent above. The carrier may include insurance at no extra cost.
+    if (!Array.isArray(option.packages) || option.packages.length !== 1
       || !Number.isSafeInteger(price) || price <= 0 || price > 100000
       || !Number.isInteger(days) || days < 1 || days > 60) continue;
     const method = shippingServices[id];
