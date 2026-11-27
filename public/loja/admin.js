@@ -137,7 +137,16 @@ function renderOrders(orders,more) {
     }
     card.append(heading,meta,details);
     if (waitingQuote) card.append(shippingQuoteForm(order));
-    if (paid && !pickup) card.append(trackingForm(order));
+    if (paid && !pickup) {
+      if (order.tracking_code) {
+        const tracking = element('a','Rastrear na SuperFrete · '+order.tracking_code,'outline');
+        tracking.href = 'https://rastreio.superfrete.com/#/tracking/'+encodeURIComponent(order.tracking_code);
+        tracking.target = '_blank';
+        tracking.rel = 'noopener noreferrer';
+        card.append(tracking);
+      }
+      card.append(trackingForm(order));
+    }
     const actions = element('div',undefined,'admin-tabs');
     if (paid && order.fulfillment !== 'delivered') {
       const shipment = order.fulfillment === 'pending';
