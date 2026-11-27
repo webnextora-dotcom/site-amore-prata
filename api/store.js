@@ -477,7 +477,7 @@ async function route(req,res,action,body) {
       filters.set(column,'in.('+values.join(',')+')');
     }
     const [products,orders] = await Promise.all([
-      listProducts(),
+      req.query.ordersOnly === '1' ? [] : listProducts(),
       db('/rest/v1/orders?select=id,customer,items,total,shipping,payment_status,fulfillment,created_at,shipping_requested,shipping_method,shipping_days,tracking_code&order=created_at.desc,id.desc&deleted_at=is.null&limit=26&offset='+offset+'&'+filters)
     ]);
     return {products, orders:orders.slice(0,25), more:orders.length > 25, paymentSetupAllowed:setupOwner(user)};
