@@ -249,6 +249,7 @@ function canRefreshOrders() {
 async function load({background = false} = {}) {
   const request = background ? latestLoad : ++latestLoad;
   const query = new URLSearchParams({offset:String(offset)});
+  if (background) query.set('ordersOnly','1');
   const filters = new FormData(orderFilters);
   for (const name of ['payment','delivery']) {
     const values = filters.getAll(name);
